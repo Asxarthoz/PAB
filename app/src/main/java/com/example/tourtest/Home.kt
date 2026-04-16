@@ -46,7 +46,6 @@ fun Home(navController: NavController) {
             text = "Bosenkan di rumah mulu? Stress juga gara-gara ngoding mulu? Mending liburan bersama Tourizme! Buat liburan kamu jadi praktis" +
                     " dan enjoy dengan Tourizme.",
             fontSize = 18.sp, textAlign = TextAlign.Center
-
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -68,7 +67,5 @@ fun Home(navController: NavController) {
         }) {
             Text("Githubku")
         }
-
-
     }
 }
