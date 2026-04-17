@@ -1,10 +1,11 @@
-Keraton Surakarta|Solo|Rp15.000|https://nagantour.com/wp-content/uploads/2023/09/Keraton-Surakarta.webp
-Pura Mangkunegaran|Solo|Rp30.000|https://ugm.ac.id/wp-content/uploads/2023/10/pura-mangkunegaran-768x461.jpg
-Pasar Gede Hardjonagoro|Solo|Rp0|https://i0.wp.com/telusuri.id/wp-content/uploads/2024/04/Tampak-depan-gedung-induk-Pasar-Gede-Hardjonegoro-Solo-Ibnu-Rustamadji.jpg
-The Heritage Palace|Sukoharjo|Rp55.000|https://nagantour.com/wp-content/uploads/2023/08/the-heritage-palace.webp
-Umbul Ponggok|Klaten|Rp15.000|https://rricoid-assets.obs.ap-southeast-4.myhuaweicloud.com/berita/Surakarta/o/1760502438309-images_(3)/i60icz5hja6sww7.jpeg
-Candi Cetho|Karanganyar|Rp15.000|https://dynamic-media-cdn.tripadvisor.com/media/photo-o/06/1d/9b/1f/candi-cetho.jpg
-Grojogan Sewu|Tawangmangu|Rp22.000|https://nagantour.com/wp-content/uploads/2023/09/Air-terjun-grojogan-sewu-800x450.webp
-De' Tjolomadoe|Karanganyar|Rp35.000|https://zjglidcehtsqqqhbdxyp.supabase.co/storage/v1/object/public/atourin/images/destination/karanganyar/de-tjolomadoe-profile1640535886.png
-Waduk Gajah Mungkur|Wonogiri|Rp12.000|https://ik.imagekit.io/tvlk/blog/2024/08/shutterstock_2499188259.jpg
-Museum Purbakala Sangiran|Sragen|Rp8.000|https://asset.kompas.com/crops/e1DRTGiDxa2zWCL9-YJDUXdeb_g=/0x0:1800x1200/1200x800/data/photo/2021/11/21/6199d94c1d04d.jpg
+Keraton Surakarta|Solo|Rp15.000|https://nagantour.com/wp-content/uploads/2023/09/Keraton-Surakarta.webp|https://maps.app.goo.gl/v5dNaX4wY1gSsg7c6
+Pura Mangkunegaran|Solo|Rp30.000|https://ugm.ac.id/wp-content/uploads/2023/10/pura-mangkunegaran-768x461.jpg|https://maps.app.goo.gl/HXTqcLUMyrp5Qzp18
+Pasar Gede Hardjonagoro|Solo|Rp0|https://i0.wp.com/telusuri.id/wp-content/uploads/2024/04/Tampak-depan-gedung-induk-Pasar-Gede-Hardjonegoro-Solo-Ibnu-Rustamadji.jpg|https://maps.app.goo.gl/5WZjcUvqSTEYshYr8
+The Heritage Palace|Sukoharjo|Rp55.000|https://nagantour.com/wp-content/uploads/2023/08/the-heritage-palace.webp|https://maps.app.goo.gl/7gcNnT1wiYa5YdcT6
+Umbul Ponggok|Klaten|Rp15.000|https://rricoid-assets.obs.ap-southeast-4.myhuaweicloud.com/berita/Surakarta/o/1760502438309-images_(3)/i60icz5hja6sww7.jpeg|https://maps.app.goo.gl/jfmo5Go9cMGyefB28
+Candi Cetho|Karanganyar|Rp15.000|https://dynamic-media-cdn.tripadvisor.com/media/photo-o/06/1d/9b/1f/candi-cetho.jpg|https://maps.app.goo.gl/xrQWhgfvfPk4e8ua8
+Grojogan Sewu|Tawangmangu|Rp22.000|https://nagantour.com/wp-content/uploads/2023/09/Air-terjun-grojogan-sewu-800x450.webp|https://maps.app.goo.gl/2f1ecjuocmBhcp2XA
+De' Tjolomadoe|Karanganyar|Rp35.000|https://zjglidcehtsqqqhbdxyp.supabase.co/storage/v1/object/public/atourin/images/destination/karanganyar/de-tjolomadoe-profile1640535886.png|https://maps.app.goo.gl/saf6PaQrHTLNHDQM7
+Waduk Gajah Mungkur|Wonogiri|Rp12.000|https://ik.imagekit.io/tvlk/blog/2024/08/shutterstock_2499188259.jpg|https://maps.app.goo.gl/ioqCBch7nreFTDat7
+Museum Purbakala Sangiran|Sragen|Rp8.000|https://asset.kompas.com/crops/e1DRTGiDxa2zWCL9-YJDUXdeb_g=/0x0:1800x1200/1200x800/data/photo/2021/11/21/6199d94c1d04d.jpg|https://maps.app.goo.gl/2X8DDbsZhXMFykbn8
+Kost Putra Barokah|Solo|Rp800.000|https://media.dekoruma.com/article/2024/11/21212234/Desain-Rumah-Kost-1-Lantai-FIMG.jpg|https://maps.app.goo.gl/TopqscUkG81hiRkF7
