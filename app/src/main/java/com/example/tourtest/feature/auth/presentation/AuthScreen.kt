@@ -22,7 +22,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -32,6 +31,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import com.example.tourtest.R
+
 
 @Composable
 fun AuthScreen(
@@ -50,6 +60,7 @@ fun AuthScreen(
         name = name,
         email = email,
         password = password,
+        confirmPassword = password,
         passwordVisible = passwordVisible,
         onTogglePasswordVisibility = { passwordVisible = !passwordVisible },
 
@@ -96,23 +107,32 @@ private fun Content(
     onClickSubmit: () -> Unit = {}
 ) {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("Masuk")
-                }
-            )
-        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(top = 16.dp),
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Spacer(modifier = Modifier.height(48.dp))
+            Text(
+                text = "Tourizme",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+
+            Text(
+                text = if (isLogin) "Masuk ke Akun Anda" else "Buat akun baru",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.Start).padding(bottom = 16.dp)
+            )
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 if (!isLogin) {
                     TextField(

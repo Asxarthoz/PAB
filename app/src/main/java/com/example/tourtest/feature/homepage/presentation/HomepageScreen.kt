@@ -21,11 +21,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.tourtest.R
 
 data class Destination(
     val name: String,
     val location: String,
-    val price: String
+    val price: String,
+    val imageUrl: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,18 +84,14 @@ fun DestinationCard(destination: Destination) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            Box (
-                modifier = Modifier.fillMaxWidth().height(150.dp).padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
+            AsyncImage(
+                model = destination.imageUrl,
+                contentDescription = destination.name,
+                modifier = Modifier.fillMaxWidth().height(180.dp),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(R.drawable.ic_launcher_background),
+                error = painterResource(R.drawable.ic_launcher_background)
+            )
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = destination.name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Text(text = destination.location, color = MaterialTheme.colorScheme.secondary)
@@ -114,7 +113,7 @@ fun readDestinationsFromData(context: Context): List<Destination> {
         context.assets.open("datawisata.txt").bufferedReader().useLines { lines ->
             lines.forEach { line ->
                 val p = line.split("|")
-                if (p.size == 3) list.add(Destination(p[0], p[1], p[2]))
+                if (p.size == 4) list.add(Destination(p[0], p[1], p[2], p[3]))
             }
         }
     } catch (e: Exception) {
