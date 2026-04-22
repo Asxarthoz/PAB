@@ -1,19 +1,19 @@
+// feature/homepage/presentation/HomepageScreen.kt
 package com.example.tourtest.feature.homepage.presentation
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -31,41 +31,157 @@ fun HomepageScreen(
     onNavigateToProfile: () -> Unit
 ) {
     val context = LocalContext.current
-    val destinations = remember { HomepageManager.readDestinationsFromData(context) }
+    val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
+
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
+
+    // Filter berdasarkan nama dan lokasi saja (tanpa category)
+    val filteredDestinations = remember(searchQuery, allDestinations) {
+        if (searchQuery.isBlank()) {
+            allDestinations
+        } else {
+            allDestinations.filter { destination ->
+                destination.name.contains(searchQuery, ignoreCase = true) ||
+                        destination.location.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tourizme", fontWeight = FontWeight.Bold)},
-                actions = {
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(Icons.Default.Person, contentDescription = null)
+                title = {
+                    if (isSearchActive) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Cari destinasi...") },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                            leadingIcon = {
+                                Icon(Icons.Default.Search, contentDescription = null)
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Hapus")
+                                    }
+                                }
+                            }
+                        )
+                    } else {
+                        Text("Tourizme", fontWeight = FontWeight.Bold)
                     }
-                }
+                },
+                actions = {
+                    IconButton(onClick = { isSearchActive = !isSearchActive }) {
+                        Icon(
+                            if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (isSearchActive) "Tutup pencarian" else "Cari"
+                        )
+                    }
+                    IconButton(onClick = onNavigateToProfile) {
+                        Icon(Icons.Default.Person, contentDescription = "Profile")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             )
         }
-    ) {
-        paddingValues ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
-            item {
-                Text(
-                    text = "Temukan Petualanganmu yang selanjutnya di Solo Raya",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Temukan destinasi wisat terbaik di Solo Raya",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            if (!isSearchActive && searchQuery.isBlank()) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Temukan Petualanganmu",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Temukan destinasi wisata terbaik di Solo Raya",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            items(destinations) { destination ->
-                DestinationCard(destination)
+            if (isSearchActive || searchQuery.isNotBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Ditemukan ${filteredDestinations.size} destinasi",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (searchQuery.isNotBlank()) {
+                        TextButton(onClick = { searchQuery = "" }) {
+                            Text("Reset")
+                        }
+                    }
+                }
+            }
+
+            if (filteredDestinations.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "Tidak ada destinasi ditemukan",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Coba dengan kata kunci lain",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(filteredDestinations) { destination ->
+                        DestinationCard(destination)
+                    }
+                }
             }
         }
     }
@@ -79,32 +195,57 @@ fun DestinationCard(destination: Destination) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(destination.gmapUrl))
         context.startActivity(intent)
     }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = MaterialTheme.shapes.medium
     ) {
         Column {
             AsyncImage(
                 model = destination.imageUrl,
                 contentDescription = destination.name,
-                modifier = Modifier.fillMaxWidth().height(180.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
                 contentScale = ContentScale.Crop,
                 placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
                 error = painterResource(R.drawable.undraw_loading_ui_egb4)
             )
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = destination.name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                TextButton(onClick = openMaps, contentPadding = PaddingValues(0.dp)) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(text = destination.location, color = MaterialTheme.colorScheme.secondary)
+
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = destination.name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Tombol lokasi (maps)
+                TextButton(
+                    onClick = openMaps,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = destination.location,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 14.sp
+                    )
                 }
-                Text(text = destination.location, color = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "Mulai dari ${destination.price}",
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 16.sp
                 )
             }
         }

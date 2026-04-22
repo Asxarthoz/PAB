@@ -6,6 +6,7 @@ data class Users(
     val nickName: String,
     val email: String,
     val password: String,
-    val role: String, //  admin/mitra/ wisatwaan
-    val isVerified: Boolean
+    val role: String,
+    val isVerified: Boolean,
+    val profileImage: String? = null
 )
