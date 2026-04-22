@@ -1,4 +1,4 @@
-// feature/auth/presentation/AuthScreen.kt
+
 package com.example.tourtest.feature.auth.presentation
 
 import androidx.compose.foundation.layout.Arrangement
@@ -46,23 +46,16 @@ fun AuthScreen(
     onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // State untuk toggle login/register
     var isLogin by remember { mutableStateOf(true) }
-
-    // State untuk form
     var name by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
     var emailOrNickname by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-
-    // State untuk UI
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Inisialisasi data dari assets (hanya sekali)
     LaunchedEffect(Unit) {
         AuthManager.initializeDataFromAssets(context)
     }
@@ -80,7 +73,6 @@ fun AuthScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Header
             Text(
                 text = "Tourizme",
                 style = MaterialTheme.typography.displaySmall,
@@ -98,7 +90,6 @@ fun AuthScreen(
                     .padding(bottom = 16.dp)
             )
 
-            // Error message
             if (errorMessage != null) {
                 androidx.compose.material3.Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -114,13 +105,11 @@ fun AuthScreen(
                 }
             }
 
-            // Form Fields
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (!isLogin) {
-                    // REGISTER: Field Nama Lengkap
                     TextField(
                         value = name,
                         onValueChange = { name = it },
@@ -131,7 +120,6 @@ fun AuthScreen(
                         isError = errorMessage?.contains("Nama") == true
                     )
 
-                    // REGISTER: Field Nickname
                     TextField(
                         value = nickname,
                         onValueChange = { nickname = it },
@@ -143,7 +131,6 @@ fun AuthScreen(
                     )
                 }
 
-                // Field Email atau Nickname
                 TextField(
                     value = emailOrNickname,
                     onValueChange = { emailOrNickname = it },
@@ -161,7 +148,6 @@ fun AuthScreen(
                             errorMessage?.contains("Nickname") == true
                 )
 
-                // Field Password
                 TextField(
                     value = password,
                     onValueChange = { password = it },
@@ -180,7 +166,6 @@ fun AuthScreen(
                     isError = errorMessage?.contains("password") == true
                 )
 
-                // REGISTER: Field Konfirmasi Password
                 if (!isLogin) {
                     TextField(
                         value = confirmPassword,
@@ -201,7 +186,6 @@ fun AuthScreen(
                                 (confirmPassword.isNotEmpty() && password != confirmPassword)
                     )
 
-                    // Password requirement hint
                     if (password.isNotEmpty() && password.length < 6) {
                         Text(
                             text = "Password minimal 6 karakter",
@@ -222,7 +206,6 @@ fun AuthScreen(
                 }
             }
 
-            // Button Group
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -243,7 +226,6 @@ fun AuthScreen(
                             errorMessage = null
 
                             if (isLogin) {
-                                // ========== LOGIN ==========
                                 if (emailOrNickname.isBlank()) {
                                     errorMessage = "Email atau Nickname tidak boleh kosong"
                                     isLoading = false
@@ -277,7 +259,6 @@ fun AuthScreen(
                                 }
                                 isLoading = false
                             } else {
-                                // ========== REGISTER ==========
                                 when {
                                     name.isBlank() -> errorMessage = "Nama lengkap tidak boleh kosong"
                                     nickname.isBlank() -> errorMessage = "Nickname tidak boleh kosong"
@@ -296,7 +277,6 @@ fun AuthScreen(
                                         )
 
                                         if (success) {
-                                            // Registrasi berhasil, langsung login
                                             val loginSuccess = AuthManager.loginUser(
                                                 context = context,
                                                 inputEmailOrNickName = emailOrNickname,
@@ -339,11 +319,9 @@ fun AuthScreen(
                         password = ""
                         confirmPassword = ""
                         if (isLogin) {
-                            // Switch ke login, reset form register
                             name = ""
                             nickname = ""
                         } else {
-                            // Switch ke register, reset form login
                             emailOrNickname = ""
                         }
                     },
@@ -362,7 +340,6 @@ fun AuthScreen(
     }
 }
 
-// Preview
 @Preview(showBackground = true, name = "Login Screen")
 @Composable
 private fun LoginPreview() {

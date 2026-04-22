@@ -1,4 +1,4 @@
-// feature/auth/manager/AuthManager.kt
+
 package com.example.tourtest.feature.auth.manager
 
 import android.content.Context
@@ -9,9 +9,6 @@ object AuthManager {
     private const val INTERNAL_FILE_NAME = "datauser.txt"
     private const val ASSETS_FILE_NAME = "datauser.txt"
 
-    /**
-     * Inisialisasi: Copy data dari assets ke internal storage (hanya sekali)
-     */
     fun initializeDataFromAssets(context: Context): Boolean {
         return try {
             val internalFile = File(context.filesDir, INTERNAL_FILE_NAME)
@@ -31,9 +28,6 @@ object AuthManager {
         }
     }
 
-    /**
-     * Mendapatkan semua user dari internal storage
-     */
     fun getAllUsers(context: Context): List<Users> {
         val users = mutableListOf<Users>()
         return try {
@@ -68,9 +62,6 @@ object AuthManager {
         }
     }
 
-    /**
-     * Register user baru
-     */
     fun registerUser(
         context: Context,
         name: String,
@@ -106,9 +97,7 @@ object AuthManager {
         }
     }
 
-    /**
-     * Login user
-     */
+
     fun loginUser(
         context: Context,
         inputEmailOrNickName: String,
@@ -121,9 +110,6 @@ object AuthManager {
         }
     }
 
-    /**
-     * Mendapatkan data user yang login
-     */
     fun getLoggedInUser(
         context: Context,
         emailOrNickName: String,
@@ -136,25 +122,16 @@ object AuthManager {
         }
     }
 
-    /**
-     * Mendapatkan user berdasarkan ID
-     */
     fun getUserById(context: Context, userId: String): Users? {
         val users = getAllUsers(context)
         return users.find { it.id == userId }
     }
 
-    /**
-     * Cek apakah user sudah ada
-     */
     fun isUserExists(context: Context, email: String, nickname: String): Boolean {
         val users = getAllUsers(context)
         return users.any { it.email == email || it.nickName == nickname }
     }
 
-    /**
-     * Update data user di file
-     */
     fun updateUser(context: Context, updatedUser: Users): Boolean {
         return try {
             val users = getAllUsers(context).toMutableList()
@@ -172,19 +149,10 @@ object AuthManager {
         }
     }
 
-    /**
-     * Update password user
-     */
-
-
-    /**
-     * Menyimpan semua user ke file
-     */
     private fun saveAllUsers(context: Context, users: List<Users>): Boolean {
         return try {
             val stringBuilder = StringBuilder()
             for (user in users) {
-                // Format: id|name|nickName|email|password|role|isVerified|profileImage
                 stringBuilder.append("${user.id}|${user.name}|${user.nickName}|${user.email}|${user.password}|${user.role}|${user.isVerified}|${user.profileImage ?: ""}\n")
             }
             context.openFileOutput(INTERNAL_FILE_NAME, Context.MODE_PRIVATE).use { outputStream ->
@@ -196,9 +164,6 @@ object AuthManager {
             false
         }
     }
-    // ============================================
-    // SESSION MANAGEMENT
-    // ============================================
 
     private var currentUserId: String? = null
 

@@ -1,4 +1,4 @@
-// feature/profile/manager/ProfileManager.kt
+
 package com.example.tourtest.feature.profile.manager
 
 import android.content.Context
@@ -14,8 +14,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-// Di bagian import, tambahkan:
-import androidx.compose.material.icons.filled.Delete
 
 class ProfileManager(
     private val context: Context
@@ -35,9 +33,6 @@ class ProfileManager(
     private val _profileImagePath = MutableStateFlow<String?>(null)
     val profileImagePath: StateFlow<String?> = _profileImagePath.asStateFlow()
 
-    /**
-     * Load user dari file berdasarkan ID yang sedang login
-     */
     suspend fun loadUserFromFile() {
         _isLoading.value = true
 
@@ -57,9 +52,6 @@ class ProfileManager(
         _isLoading.value = false
     }
 
-    /**
-     * Update profile user dan simpan ke AuthManager
-     */
     suspend fun updateProfile(
         name: String,
         nickName: String,
@@ -120,14 +112,11 @@ class ProfileManager(
         }
     }
 
-    /**
-     * Simpan foto profil
-     */
+
     fun saveProfileImage(bitmap: Bitmap): String? {
         return try {
             val fileName = "profile_${System.currentTimeMillis()}.jpg"
 
-            // Gunakan context.filesDir (ini yang benar)
             val directory = context.filesDir.resolve("profile_images")
 
             if (!directory.exists()) {
@@ -140,44 +129,38 @@ class ProfileManager(
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
             }
 
-            // Path yang benar
             val correctPath = file.absolutePath
-            println("✅ Foto disimpan di: $correctPath")
+            println("Foto disimpan di: $correctPath")
 
             _profileImagePath.value = correctPath
 
-            // Simpan ke user
             val currentUser = _userState.value
             if (currentUser != null) {
                 val updatedUser = currentUser.copy(profileImage = correctPath)
                 _userState.value = updatedUser
                 AuthManager.updateUser(context, updatedUser)
-                println("✅ Path disimpan ke user: $correctPath")
+                println("Path disimpan ke user: $correctPath")
             }
 
             correctPath
         } catch (e: Exception) {
-            println("❌ Error: ${e.message}")
+            println("Error: ${e.message}")
             e.printStackTrace()
             null
         }
     }
-    // feature/profile/manager/ProfileManager.kt
-// Tambahkan fungsi ini:
 
     fun deleteProfileImage() {
         try {
-            // Hapus file foto jika ada
             val currentPath = _profileImagePath.value
             if (currentPath != null) {
                 val file = File(currentPath)
                 if (file.exists()) {
                     file.delete()
-                    println("✅ File foto dihapus: $currentPath")
+                    println("File foto dihapus: $currentPath")
                 }
             }
 
-            // Hapus path dari user
             val currentUser = _userState.value
             if (currentUser != null) {
                 val updatedUser = currentUser.copy(profileImage = null)
@@ -185,17 +168,13 @@ class ProfileManager(
                 AuthManager.updateUser(context, updatedUser)
             }
 
-            // Reset state
             _profileImagePath.value = null
-            println("✅ Foto profil dihapus dari user")
+            println("Foto profil dihapus dari user")
         } catch (e: Exception) {
-            println("❌ Error deleteProfileImage: ${e.message}")
+            println("Error deleteProfileImage: ${e.message}")
             e.printStackTrace()
         }
     }
-    /**
-     * Load foto profil dari path
-     */
     fun loadProfileImage(imagePath: String?): Bitmap? {
         return try {
             if (imagePath != null) {
@@ -213,10 +192,6 @@ class ProfileManager(
             null
         }
     }
-
-    /**
-     * Load foto profil dari user yang sedang login
-     */
     fun loadProfileImageFromUser(): Bitmap? {
         val currentUser = _userState.value
         val path = currentUser?.profileImage
@@ -226,17 +201,10 @@ class ProfileManager(
             null
         }
     }
-
-    /**
-     * Update path foto profil
-     */
     fun updateProfileImagePath(path: String?) {
         _profileImagePath.value = path
     }
 
-    /**
-     * Update password user
-     */
     suspend fun updatePassword(oldPassword: String, newPassword: String, confirmPassword: String): Boolean {
         _isLoading.value = true
         _error.value = null

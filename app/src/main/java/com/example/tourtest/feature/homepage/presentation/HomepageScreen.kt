@@ -1,4 +1,4 @@
-// feature/homepage/presentation/HomepageScreen.kt
+
 package com.example.tourtest.feature.homepage.presentation
 
 import android.content.Intent
@@ -35,8 +35,6 @@ fun HomepageScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
-
-    // Filter berdasarkan nama dan lokasi saja (tanpa category)
     val filteredDestinations = remember(searchQuery, allDestinations) {
         if (searchQuery.isBlank()) {
             allDestinations
@@ -223,7 +221,6 @@ fun DestinationCard(destination: Destination) {
                     fontWeight = FontWeight.Bold
                 )
 
-                // Tombol lokasi (maps)
                 TextButton(
                     onClick = openMaps,
                     contentPadding = PaddingValues(0.dp)

@@ -1,4 +1,4 @@
-// feature/profile/manager/PasswordManager.kt
+
 package com.example.tourtest.feature.profile.manager
 
 import android.content.Context
@@ -23,9 +23,6 @@ class PasswordManager(
     private val _currentUser = MutableStateFlow<Users?>(null)
     val currentUser: StateFlow<Users?> = _currentUser.asStateFlow()
 
-    /**
-     * Load current user data
-     */
     suspend fun loadCurrentUser() {
         val userId = AuthManager.getCurrentUserId()
         if (userId != null) {
@@ -34,9 +31,6 @@ class PasswordManager(
         }
     }
 
-    /**
-     * Change password
-     */
     suspend fun changePassword(
         oldPassword: String,
         newPassword: String,
@@ -46,7 +40,6 @@ class PasswordManager(
         _error.value = null
         _isSuccess.value = false
 
-        // Validasi
         if (oldPassword.isBlank()) {
             _error.value = "Password lama tidak boleh kosong"
             _isLoading.value = false
@@ -78,7 +71,6 @@ class PasswordManager(
             return false
         }
 
-        // Cek password lama
         if (currentUser.password != oldPassword) {
             _error.value = "Password lama salah"
             _isLoading.value = false

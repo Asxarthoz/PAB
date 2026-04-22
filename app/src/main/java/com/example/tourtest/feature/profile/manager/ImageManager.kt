@@ -1,4 +1,4 @@
-// feature/profile/manager/ImageManager.kt
+
 package com.example.tourtest.feature.profile.manager
 
 import android.Manifest
@@ -22,9 +22,6 @@ class ImageManager(private val context: Context) {
 
     private var currentPhotoUri: Uri? = null
 
-    /**
-     * Cek izin kamera
-     */
     fun hasCameraPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
@@ -32,18 +29,12 @@ class ImageManager(private val context: Context) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    /**
-     * Buat file temporary untuk kamera
-     */
     fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "JPEG_${timeStamp}_"
         return File.createTempFile(imageFileName, ".jpg", context.cacheDir)
     }
 
-    /**
-     * Simpan gambar ke storage
-     */
     fun saveImage(bitmap: Bitmap): String {
         val file = File(context.filesDir, "profile_images/profile_${System.currentTimeMillis()}.jpg")
         file.parentFile?.mkdirs()
@@ -53,9 +44,6 @@ class ImageManager(private val context: Context) {
         return file.absolutePath
     }
 
-    /**
-     * Load gambar dari storage
-     */
     fun loadImage(path: String): Bitmap? {
         return try {
             val file = File(path)
@@ -69,9 +57,6 @@ class ImageManager(private val context: Context) {
         }
     }
 
-    /**
-     * Dapatkan launcher untuk kamera (harus dipanggil di Composable)
-     */
     @Composable
     fun getCameraLauncher(onResult: (Bitmap?) -> Unit) {
         val file = createImageFile()
@@ -101,9 +86,6 @@ class ImageManager(private val context: Context) {
         launcher.launch(photoUri)
     }
 
-    /**
-     * Dapatkan launcher untuk galeri (harus dipanggil di Composable)
-     */
     @Composable
     fun getGalleryLauncher(onResult: (Bitmap?) -> Unit) {
         val launcher = rememberLauncherForActivityResult(

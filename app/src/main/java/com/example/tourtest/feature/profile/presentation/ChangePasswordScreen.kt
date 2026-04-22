@@ -1,4 +1,4 @@
-// feature/profile/presentation/ChangePasswordScreen.kt
+
 package com.example.tourtest.feature.profile.presentation
 
 import android.widget.Toast
@@ -248,7 +248,7 @@ fun ChangePasswordScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "ℹ️ Tips Password Aman",
+                        text = "Tips Password Aman",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

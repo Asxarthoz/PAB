@@ -1,4 +1,4 @@
-// feature/profile/presentation/EditProfileScreen.kt
+
 package com.example.tourtest.feature.profile.presentation
 
 import android.graphics.Bitmap
@@ -51,30 +51,26 @@ fun EditProfileScreen(
     navController: NavController,
     profileManager: ProfileManager
 ) {
-    Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")  // ✨ TAMBAHKAN INI
+    Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // State dari ProfileManager
     val currentUser by profileManager.userState.collectAsStateWithLifecycle()
     val isLoading by profileManager.isLoading.collectAsStateWithLifecycle()
     val error by profileManager.error.collectAsStateWithLifecycle()
     val updateSuccess by profileManager.updateSuccess.collectAsStateWithLifecycle()
     val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
 
-    // State lokal untuk form
     var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
     var nickName by remember(currentUser) { mutableStateOf(currentUser?.nickName ?: "") }
     var email by remember(currentUser) { mutableStateOf(currentUser?.email ?: "") }
 
-    // State untuk foto profil
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showImagePickerDialog by remember { mutableStateOf(false) }
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
 
-    // Load foto profil jika ada
     LaunchedEffect(profileImagePath) {
         if (profileImagePath != null) {
             profileBitmap = profileManager.loadProfileImage(profileImagePath)
@@ -84,16 +80,15 @@ fun EditProfileScreen(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
-            Log.d("ProfileDebug", "✅ Foto berhasil: ${bitmap.width}x${bitmap.height}")
+            Log.d("ProfileDebug", "Foto berhasil: ${bitmap.width}x${bitmap.height}")
             profileBitmap = bitmap
             Toast.makeText(context, "Foto berhasil diambil", Toast.LENGTH_SHORT).show()
         } else {
-            Log.d("ProfileDebug", "❌ Gagal ambil foto")
+            Log.d("ProfileDebug", "Gagal ambil foto")
             Toast.makeText(context, "Gagal mengambil foto", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Launcher untuk galeri
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -105,14 +100,12 @@ fun EditProfileScreen(
         }
     }
 
-    // Fungsi untuk membuat file temporary
     fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "JPEG_${timeStamp}_"
         return File.createTempFile(imageFileName, ".jpg", context.cacheDir)
     }
 
-    // Reset error saat keluar halaman
     DisposableEffect(Unit) {
         onDispose {
             profileManager.clearError()
@@ -120,7 +113,6 @@ fun EditProfileScreen(
         }
     }
 
-    // Navigasi balik jika sukses
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
             Toast.makeText(context, "Profil berhasil diupdate!", Toast.LENGTH_SHORT).show()
@@ -144,12 +136,10 @@ fun EditProfileScreen(
                     }
                 },
                 actions = {
-                    // ✨ Tombol Hapus Foto (opsional)
                     if (profileBitmap != null) {
                         IconButton(
                             onClick = {
                                 scope.launch {
-                                    // Hapus foto
                                     profileManager.deleteProfileImage()
                                     profileBitmap = null
                                     Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
@@ -160,14 +150,12 @@ fun EditProfileScreen(
                         }
                     }
 
-                    // Tombol Simpan
                     TextButton(
                         onClick = {
                             if (!isSaving) {
                                 scope.launch {
                                     isSaving = true
 
-                                    // Simpan gambar jika ada perubahan
                                     profileBitmap?.let { bitmap ->
                                         val savedPath = profileManager.saveProfileImage(bitmap)
                                         if (savedPath != null) {
@@ -176,7 +164,6 @@ fun EditProfileScreen(
                                         }
                                     }
 
-                                    // Update profile
                                     profileManager.updateProfile(
                                         name = name,
                                         nickName = nickName,
@@ -211,7 +198,7 @@ fun EditProfileScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar dengan tombol pilih gambar
+
             Box(
                 modifier = Modifier
                     .size(120.dp)
@@ -238,7 +225,6 @@ fun EditProfileScreen(
                     )
                 }
 
-                // Icon camera di pojok
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -274,7 +260,6 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Dialog pilih sumber gambar
             if (showImagePickerDialog) {
                 AlertDialog(
                     onDismissRequest = { showImagePickerDialog = false },
@@ -284,7 +269,7 @@ fun EditProfileScreen(
                         TextButton(
                             onClick = {
                                 showImagePickerDialog = false
-                                cameraLauncher.launch(null)  // ✅ INI BENAR (tidak perlu URI)
+                                cameraLauncher.launch(null)
                             }
                         ) {
                             Icon(Icons.Default.CameraAlt, contentDescription = null)
@@ -307,7 +292,6 @@ fun EditProfileScreen(
                 )
             }
 
-            // Error message
             if (error != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -340,7 +324,6 @@ fun EditProfileScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Form Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -405,7 +388,7 @@ fun EditProfileScreen(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("ℹ️ Informasi Akun", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Informasi Akun", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text("• Role: ${when(currentUser?.role) {
                         "admin" -> "Administrator"
                         "mitra" -> "Mitra"

@@ -1,4 +1,4 @@
-// feature/profile/presentation/ProfileScreen.kt
+
 package com.example.tourtest.feature.profile.presentation
 
 import android.graphics.Bitmap
@@ -43,12 +43,9 @@ fun ProfileScreen(
     var currentUser by remember { mutableStateOf<Users?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // State untuk foto profil
     val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    // Load data user
     LaunchedEffect(Unit) {
         isLoading = true
 
@@ -66,7 +63,6 @@ fun ProfileScreen(
         isLoading = false
     }
 
-    // Load foto profil jika ada
     LaunchedEffect(currentUser) {
         if (currentUser?.profileImage != null) {
             profileBitmap = profileManager.loadProfileImage(currentUser!!.profileImage)
@@ -130,8 +126,7 @@ fun ProfileScreen(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar dengan foto profil
-                    // Avatar dengan foto profil (bisa diklik untuk full screen)
+
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -162,7 +157,6 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Card Profil
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
