@@ -29,21 +29,18 @@ fun ComposeApp() {
                 rememberViewModelStoreNavEntryDecorator()
             ),
             entryProvider = entryProvider {
-                // Auth Screen
                 entry<Routes.AuthRoute> {
                     AuthScreen(
                         onLoginSuccess = { backStack.add(Routes.HomeRoute) }
                     )
                 }
 
-                // Home Screen
                 entry<Routes.HomeRoute> {
                     HomepageScreen(
                         onNavigateToProfile = { backStack.add(Routes.ProfileRoute) }
                     )
                 }
 
-                // Profile Screen
                 entry<Routes.ProfileRoute> {
                     ProfileScreen(
                         onLogout = {
@@ -56,7 +53,6 @@ fun ComposeApp() {
                     )
                 }
 
-                // Edit Profile Screen
                 entry<Routes.EditProfileRoute> {
                     val profileManager = ProfileManager(context)
                     EditProfileScreen(
@@ -65,7 +61,6 @@ fun ComposeApp() {
                     )
                 }
 
-                // Change Password Screen
                 entry<Routes.ChangePasswordRoute> {
                     val passwordManager = PasswordManager(context)
                     ChangePasswordScreen(
@@ -73,8 +68,6 @@ fun ComposeApp() {
                         passwordManager = passwordManager
                     )
                 }
-
-                // Full Screen Image
                 entry<Routes.FullScreenImageRoute> {
                     FullScreenImageScreen(
                         onBack = { backStack.removeLastOrNull() },

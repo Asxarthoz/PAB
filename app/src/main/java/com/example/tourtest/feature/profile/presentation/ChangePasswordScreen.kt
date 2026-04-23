@@ -86,7 +86,7 @@ fun ChangePasswordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())  // ✨ Tambahkan scroll
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -307,7 +307,7 @@ fun ChangePasswordScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))  // ✨ Spacer bottom
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
