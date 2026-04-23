@@ -1,4 +1,4 @@
-
+// feature/homepage/presentation/HomepageScreen.kt
 package com.example.tourtest.feature.homepage.presentation
 
 import android.content.Intent
@@ -20,15 +20,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.model.Destination
 import com.example.tourtest.feature.homepage.manager.HomepageManager
+import com.example.tourtest.feature.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomepageScreen(
-    onNavigateToProfile: () -> Unit
+    navController: NavController
 ) {
     val context = LocalContext.current
     val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
@@ -87,7 +89,10 @@ fun HomepageScreen(
                             contentDescription = if (isSearchActive) "Tutup pencarian" else "Cari"
                         )
                     }
-                    IconButton(onClick = onNavigateToProfile) {
+                    // Navigasi ke Profile (Type-Safe)
+                    IconButton(onClick = {
+                        navController.navigate(Screen.Profile)
+                    }) {
                         Icon(Icons.Default.Person, contentDescription = "Profile")
                     }
                 },
@@ -102,6 +107,7 @@ fun HomepageScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Header
             if (!isSearchActive && searchQuery.isBlank()) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -119,6 +125,7 @@ fun HomepageScreen(
                 }
             }
 
+            // Info hasil pencarian
             if (isSearchActive || searchQuery.isNotBlank()) {
                 Row(
                     modifier = Modifier
@@ -140,7 +147,9 @@ fun HomepageScreen(
                 }
             }
 
+            // List Destinasi
             if (filteredDestinations.isEmpty()) {
+                // Tampilan kosong
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -177,7 +186,7 @@ fun HomepageScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(filteredDestinations) { destination ->
-                        DestinationCard(destination)
+                        DestinationCard(destination = destination)
                     }
                 }
             }
@@ -186,7 +195,9 @@ fun HomepageScreen(
 }
 
 @Composable
-fun DestinationCard(destination: Destination) {
+fun DestinationCard(
+    destination: Destination
+) {
     val context = LocalContext.current
 
     val openMaps = {
@@ -200,6 +211,7 @@ fun DestinationCard(destination: Destination) {
         shape = MaterialTheme.shapes.medium
     ) {
         Column {
+            // Gambar Destinasi
             AsyncImage(
                 model = destination.imageUrl,
                 contentDescription = destination.name,
@@ -211,16 +223,19 @@ fun DestinationCard(destination: Destination) {
                 error = painterResource(R.drawable.undraw_loading_ui_egb4)
             )
 
+            // Informasi Destinasi
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Nama Destinasi
                 Text(
                     text = destination.name,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
 
+                // Tombol Lokasi (Maps)
                 TextButton(
                     onClick = openMaps,
                     contentPadding = PaddingValues(0.dp)
@@ -238,6 +253,7 @@ fun DestinationCard(destination: Destination) {
                     )
                 }
 
+                // Harga
                 Text(
                     text = "Mulai dari ${destination.price}",
                     fontWeight = FontWeight.SemiBold,

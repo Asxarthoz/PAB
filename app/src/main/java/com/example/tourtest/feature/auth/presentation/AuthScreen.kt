@@ -1,4 +1,4 @@
-
+// feature/auth/presentation/AuthScreen.kt
 package com.example.tourtest.feature.auth.presentation
 
 import androidx.compose.foundation.layout.Arrangement
@@ -37,13 +37,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.feature.navigation.Screen
 import com.example.tourtest.ui.theme.TourizmeTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
-    onLoginSuccess: () -> Unit
+    navController: NavController
 ) {
     val context = LocalContext.current
     var isLogin by remember { mutableStateOf(true) }
@@ -226,6 +229,7 @@ fun AuthScreen(
                             errorMessage = null
 
                             if (isLogin) {
+                                // ========== LOGIN ==========
                                 if (emailOrNickname.isBlank()) {
                                     errorMessage = "Email atau Nickname tidak boleh kosong"
                                     isLoading = false
@@ -253,12 +257,16 @@ fun AuthScreen(
                                     user?.let {
                                         AuthManager.setCurrentUser(it.id)
                                     }
-                                    onLoginSuccess()
+                                    // ✨ NAVIGASI TYPE-SAFE
+                                    navController.navigate(Screen.Home) {
+                                        popUpTo(Screen.Auth) { inclusive = true }
+                                    }
                                 } else {
                                     errorMessage = "Email/Nickname atau password salah!"
                                 }
                                 isLoading = false
                             } else {
+                                // ========== REGISTER ==========
                                 when {
                                     name.isBlank() -> errorMessage = "Nama lengkap tidak boleh kosong"
                                     nickname.isBlank() -> errorMessage = "Nickname tidak boleh kosong"
@@ -291,15 +299,20 @@ fun AuthScreen(
                                                 user?.let {
                                                     AuthManager.setCurrentUser(it.id)
                                                 }
-                                                onLoginSuccess()
+                                                // ✨ NAVIGASI TYPE-SAFE
+                                                navController.navigate(Screen.Home) {
+                                                    popUpTo(Screen.Auth) { inclusive = true }
+                                                }
                                             } else {
                                                 errorMessage = "Registrasi berhasil, silakan login"
                                                 isLogin = true
                                                 password = ""
                                                 confirmPassword = ""
+                                                isLoading = false
                                             }
                                         } else {
                                             errorMessage = "Registrasi gagal. Email atau Nickname sudah digunakan!"
+                                            isLoading = false
                                         }
                                     }
                                 }
@@ -344,7 +357,7 @@ fun AuthScreen(
 @Composable
 private fun LoginPreview() {
     TourizmeTheme {
-        AuthScreen(onLoginSuccess = {})
+        AuthScreen(navController = rememberNavController())
     }
 }
 
@@ -352,6 +365,6 @@ private fun LoginPreview() {
 @Composable
 private fun RegisterPreview() {
     TourizmeTheme {
-        AuthScreen(onLoginSuccess = {})
+        AuthScreen(navController = rememberNavController())
     }
 }

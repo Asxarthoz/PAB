@@ -23,6 +23,7 @@ import com.example.tourtest.feature.profile.presentation.ChangePasswordScreen
 import com.example.tourtest.feature.profile.presentation.EditProfileScreen
 import com.example.tourtest.feature.profile.presentation.FullScreenImageScreen
 import com.example.tourtest.feature.profile.presentation.ProfileScreen
+import com.example.tourtest.feature.navigation.Screen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -56,45 +57,40 @@ fun AppNavigation() {
 
     var isLoggedIn by remember { mutableStateOf(AuthManager.isLoggedIn()) }
 
-    val startDestination = if (isLoggedIn) "home" else "auth"
-
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = Screen.Auth
     ) {
-        composable("auth") {
+        // ✨ 1. Auth Screen
+        composable<Screen.Auth> {
             AuthScreen(
-                onLoginSuccess = {
-                    isLoggedIn = true
-                    navController.navigate("home") {
-                        popUpTo("auth") { inclusive = true }
-                    }
-                }
+                navController = navController  // ✨ Kirim navController
             )
         }
 
-        composable("home") {
+        // ✨ 2. Home Screen
+        composable<Screen.Home> {
             HomepageScreen(
-                onNavigateToProfile = {
-                    navController.navigate("profile")
-                }
+                navController = navController  // ✨ Kirim navController
             )
         }
 
-        composable("profile") {
+        // ✨ 3. Profile Screen
+        composable<Screen.Profile> {
             ProfileScreen(
                 onLogout = {
                     AuthManager.logout()
                     isLoggedIn = false
-                    navController.navigate("auth") {
-                        popUpTo("home") { inclusive = true }
+                    navController.navigate(Screen.Auth) {
+                        popUpTo(Screen.Home) { inclusive = true }
                     }
                 },
                 navController = navController
             )
         }
 
-        composable("edit_profile") {
+        // ✨ 4. Edit Profile Screen
+        composable<Screen.EditProfile> {
             val profileManager = remember { ProfileManager(context) }
             LaunchedEffect(Unit) {
                 profileManager.loadUserFromFile()
@@ -105,7 +101,8 @@ fun AppNavigation() {
             )
         }
 
-        composable("full_screen_image") {
+        // ✨ 5. Full Screen Image
+        composable<Screen.FullScreenImage> {
             val profileManager = remember { ProfileManager(context) }
             val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
             var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -121,12 +118,14 @@ fun AppNavigation() {
                 imageBitmap = imageBitmap
             )
         }
-        composable("change_password") {
+
+        composable<Screen.ChangePassword> {
             val passwordManager = remember { PasswordManager(context) }
             ChangePasswordScreen(
                 navController = navController,
                 passwordManager = passwordManager
             )
         }
+
     }
 }
