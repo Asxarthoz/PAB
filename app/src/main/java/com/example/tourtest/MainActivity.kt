@@ -8,11 +8,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.compose.*
-import androidx.navigation.compose.rememberNavController
-import com.example.tourtest.feature.auth.presentation.AuthScreen
-import com.example.tourtest.feature.homepage.presentation.HomepageScreen
-import com.example.tourtest.feature.profile.presentation.ProfileScreen
+import com.example.tourtest.core.ComposeApp
+import com.example.tourtest.feature.auth.manager.AuthManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -21,50 +18,20 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         var keepSplashScreen = true
         splashScreen.setKeepOnScreenCondition { keepSplashScreen }
+
         lifecycleScope.launch {
             delay(1000)
             keepSplashScreen = false
         }
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        AuthManager.initializeDataFromAssets(this)
 
         setContent {
-            val navController = rememberNavController()
             Surface(color = Color.White) {
-                NavHost(
-                    navController = navController,
-                    startDestination = "auth"
-                ) {
-                    composable("auth") {
-                        AuthScreen(
-                            onLoginSuccess = {
-                                navController.navigate("home") {
-                                    popUpTo("auth") { inclusive = true }
-                                }
-                            }
-                        )
-                    }
-
-                    composable("home") {
-                        HomepageScreen(
-                            onNavigateToProfile = {
-                                navController.navigate("profile")
-                        })
-                    }
-
-                    composable("profile") {
-                        ProfileScreen(
-                            onLogout = {
-                                navController.navigate("auth") {
-                                    popUpTo("home") { inclusive = true }
-                                }
-                            }
-                        )
-                    }
-                }
-
+                ComposeApp()
             }
         }
     }
 }
-
