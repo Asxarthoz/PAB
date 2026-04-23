@@ -7,6 +7,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.example.tourtest.feature.auth.presentation.AuthScreen
+import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
 import com.example.tourtest.feature.homepage.presentation.HomepageScreen
 import com.example.tourtest.feature.profile.manager.PasswordManager
 import com.example.tourtest.feature.profile.manager.ProfileManager
@@ -37,7 +38,10 @@ fun ComposeApp() {
 
                 entry<Routes.HomeRoute> {
                     HomepageScreen(
-                        onNavigateToProfile = { backStack.add(Routes.ProfileRoute) }
+                        onNavigateToProfile = { backStack.add(Routes.ProfileRoute) },
+                        onNavigateToDetail = { id ->
+                            backStack.add(Routes.DetailRoute(destinationId = id))
+                        }
                     )
                 }
 
@@ -72,6 +76,13 @@ fun ComposeApp() {
                     FullScreenImageScreen(
                         onBack = { backStack.removeLastOrNull() },
                         imageBitmap = null
+                    )
+                }
+
+                entry<Routes.DetailRoute> { route ->
+                    DestinationDetailScreen(
+                        destinationId = route.destinationId,
+                        onBack = { backStack.removeLastOrNull() }
                     )
                 }
             }

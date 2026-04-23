@@ -2,6 +2,7 @@ package com.example.tourtest.feature.homepage.presentation
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,17 +22,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tourtest.R
+import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
 import com.example.tourtest.model.Destination
 import com.example.tourtest.feature.homepage.manager.HomepageManager
+import com.example.tourtest.model.WishList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomepageScreen(
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
     val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
 
+    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    var wishListIds by remember { mutableStateOf(setOf<String>()) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
     val filteredDestinations = remember(searchQuery, allDestinations) {
@@ -39,8 +46,7 @@ fun HomepageScreen(
             allDestinations
         } else {
             allDestinations.filter { destination ->
-                destination.name.contains(searchQuery, ignoreCase = true) ||
-                        destination.location.contains(searchQuery, ignoreCase = true)
+                destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true) || destination.description.contains(searchQuery, ignoreCase = true)
             }
         }
     }
@@ -174,7 +180,18 @@ fun HomepageScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(filteredDestinations) { destination ->
-                        DestinationCard(destination = destination)
+                        val isFavorite = wishListIds.contains(destination.id)
+                        DestinationCard(
+                            destination = destination,
+                            isWishlisted = isFavorite,
+                            onWishListClick = {
+                                if (isFavorite) {
+//                                    WishlistManager.removeDestination(context, currentUserId, destination.id)
+                                } else {
+//                                     WishlistManager.addDestination(context, currentUserId, destination.id)
+                                }
+                            },
+                            onClick = {onNavigateToDetail(destination.id)})
                     }
                 }
             }
@@ -184,7 +201,10 @@ fun HomepageScreen(
 
 @Composable
 fun DestinationCard(
-    destination: Destination
+    destination: Destination,
+    isWishlisted: Boolean,
+    onWishListClick: () -> Unit,
+    onClick:() -> Unit
 ) {
     val context = LocalContext.current
 
@@ -194,21 +214,35 @@ fun DestinationCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = MaterialTheme.shapes.medium
     ) {
         Column {
-            AsyncImage(
-                model = destination.imageUrl,
-                contentDescription = destination.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                contentScale = ContentScale.Crop,
-                placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
-                error = painterResource(R.drawable.undraw_loading_ui_egb4)
-            )
+            Box {
+                AsyncImage(
+                    model = destination.imageUrl,
+                    contentDescription = destination.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
+                    error = painterResource(R.drawable.undraw_loading_ui_egb4)
+                )
+
+                IconButton(
+                    onClick = onWishListClick,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = "Wishlist",
+                        tint = if (isWishlisted) Color.Red else Color.White
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)

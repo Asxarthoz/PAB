@@ -11,7 +11,7 @@ object HomepageManager {
             context.assets.open("datawisata.txt").bufferedReader().useLines { lines ->
                 lines.forEach { line ->
                     val p = line.split("|")
-                    if (p.size == 5) list.add(Destination(p[0], p[1], p[2], p[3], p[4]))
+                    if (p.size == 7) list.add(Destination(p[0], p[1], p[2], p[3], p[4], p[5], p[6]))
                 }
             }
         } catch (e: Exception) {
@@ -19,5 +19,11 @@ object HomepageManager {
         }
 
         return list
+    }
+
+    public fun getDestinationById(context: Context, id: String): Destination? {
+        val destinationList = readDestinationsFromData(context)
+        return destinationList.find { it.id == id }
+
     }
 }

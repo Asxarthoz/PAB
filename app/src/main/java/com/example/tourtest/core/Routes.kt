@@ -1,6 +1,7 @@
 package com.example.tourtest.core
 
 import androidx.navigation3.runtime.NavKey
+import com.example.tourtest.model.Destination
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -22,4 +23,7 @@ object Routes {
 
     @Serializable
     data object FullScreenImageRoute : NavKey
+
+    @Serializable
+    data class DetailRoute(val destinationId: String) : NavKey
 }

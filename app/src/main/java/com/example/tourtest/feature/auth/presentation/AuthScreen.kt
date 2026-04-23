@@ -239,18 +239,21 @@ fun AuthScreen(
 
                                 val success = AuthManager.loginUser(
                                     context = context,
-                                    inputEmailOrNickName = emailOrNickname,
-                                    inputPassword = password
+                                    inputEmailOrNickName = emailOrNickname.trim(),
+                                    inputPassword = password.trim()
                                 )
 
                                 if (success) {
                                     val user = AuthManager.getLoggedInUser(
                                         context = context,
-                                        emailOrNickName = emailOrNickname,
-                                        password = password
+                                        emailOrNickName = emailOrNickname.trim(),
+                                        password = password.trim()
                                     )
                                     user?.let {
                                         AuthManager.setCurrentUser(it.id)
+//                                        onLoginSuccess()
+                                    } ?: run {
+                                        errorMessage = "Gagal menggambil data user"
                                     }
                                     onLoginSuccess()
                                 } else {

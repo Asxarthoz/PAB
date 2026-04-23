@@ -37,20 +37,23 @@ object AuthManager {
                 val lines = content.lines()
                 for (line in lines) {
                     if (line.isNotBlank()) {
-                        val parts = line.split("|")
-                        if (parts.size >= 7) {
-                            users.add(
-                                Users(
-                                    id = parts[0],
-                                    name = parts[1],
-                                    nickName = parts[2],
-                                    email = parts[3],
-                                    password = parts[4],
-                                    role = parts[5],
-                                    isVerified = parts[6].toBoolean(),
-                                    profileImage = if (parts.size > 7) parts[7] else null
+                        val trimmedLine = line.trim()
+                        if(trimmedLine.isNotBlank()) {
+                            val parts = trimmedLine.split("|").map { it.trim() }
+                            if (parts.size >= 7) {
+                                users.add(
+                                    Users(
+                                        id = parts[0],
+                                        name = parts[1],
+                                        nickName = parts[2],
+                                        email = parts[3],
+                                        password = parts[4],
+                                        role = parts[5],
+                                        isVerified = parts.getOrNull(6)?.toBoolean() ?: false,
+                                        profileImage = if (parts.size > 7) parts[7] else null
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -85,7 +88,7 @@ object AuthManager {
                 profileImage = null
             )
 
-            val data = "${newUser.id}|${newUser.name}|${newUser.nickName}|${newUser.email}|${newUser.password}|${newUser.role}|${newUser.isVerified}|\n"
+            val data = "${newUser.id}|${newUser.name}|${newUser.nickName}|${newUser.email}|${newUser.password}|${newUser.role}|${newUser.isVerified}\n"
 
             context.openFileOutput(INTERNAL_FILE_NAME, Context.MODE_APPEND).use { outputStream ->
                 outputStream.write(data.toByteArray())
