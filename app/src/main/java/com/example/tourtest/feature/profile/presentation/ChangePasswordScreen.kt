@@ -1,10 +1,11 @@
-
 package com.example.tourtest.feature.profile.presentation
 
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
@@ -23,14 +24,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import com.example.tourtest.feature.profile.manager.PasswordManager
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangePasswordScreen(
-    navController: NavController,
+    onBack: () -> Unit,
     passwordManager: PasswordManager
 ) {
     val context = LocalContext.current
@@ -60,7 +60,7 @@ fun ChangePasswordScreen(
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
-            navController.popBackStack()
+            onBack()
         }
     }
 
@@ -75,7 +75,7 @@ fun ChangePasswordScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 }
@@ -86,6 +86,7 @@ fun ChangePasswordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())  // ✨ Tambahkan scroll
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -271,7 +272,7 @@ fun ChangePasswordScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
@@ -305,6 +306,8 @@ fun ChangePasswordScreen(
                     Text("Simpan Password Baru")
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))  // ✨ Spacer bottom
         }
     }
 }

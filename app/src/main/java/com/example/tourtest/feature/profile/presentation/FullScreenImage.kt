@@ -17,23 +17,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.example.tourtest.feature.navigation.Screen
 
 @Composable
 fun FullScreenImageScreen(
-    navController: NavController,
+    onBack: () -> Unit,
     imageBitmap: Bitmap?
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .clickable { navController.popBackStack() },
+            .clickable { onBack() },
         contentAlignment = Alignment.Center
     ) {
         IconButton(
-            onClick = { navController.popBackStack() },
+            onClick = { onBack() },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(16.dp)

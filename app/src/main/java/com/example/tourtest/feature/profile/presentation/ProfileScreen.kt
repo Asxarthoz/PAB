@@ -1,4 +1,3 @@
-// feature/profile/presentation/ProfileScreen.kt
 package com.example.tourtest.feature.profile.presentation
 
 import android.graphics.Bitmap
@@ -26,17 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.profile.manager.ProfileManager
 import com.example.tourtest.model.Users
-import com.example.tourtest.feature.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
-    navController: NavController? = null
+    onNavigateToEditProfile: () -> Unit,
+    onNavigateToChangePassword: () -> Unit,
+    onNavigateToFullScreenImage: () -> Unit
 ) {
     val context = LocalContext.current
     val profileManager = remember { ProfileManager(context) }
@@ -47,7 +46,6 @@ fun ProfileScreen(
     val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    // Load data user
     LaunchedEffect(Unit) {
         isLoading = true
 
@@ -65,7 +63,6 @@ fun ProfileScreen(
         isLoading = false
     }
 
-    // Load foto profil
     LaunchedEffect(currentUser) {
         if (currentUser?.profileImage != null) {
             profileBitmap = profileManager.loadProfileImage(currentUser!!.profileImage)
@@ -77,9 +74,9 @@ fun ProfileScreen(
             TopAppBar(
                 title = { Text("Profil Wisatawan") },
                 actions = {
-                    if (navController != null && currentUser != null) {
+                    if (currentUser != null) {
                         IconButton(
-                            onClick = { navController.navigate(Screen.EditProfile) }
+                            onClick = onNavigateToEditProfile
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
@@ -129,15 +126,14 @@ fun ProfileScreen(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar dengan foto profil (klik untuk fullscreen)
                     Box(
                         modifier = Modifier
                             .size(120.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer)
                             .clickable {
-                                if (profileBitmap != null && navController != null) {
-                                    navController.navigate(Screen.FullScreenImage)
+                                if (profileBitmap != null) {
+                                    onNavigateToFullScreenImage()
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -159,8 +155,6 @@ fun ProfileScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
-
-                    // Card Profil
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -196,7 +190,6 @@ fun ProfileScreen(
                             )
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                            // Role
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -218,8 +211,6 @@ fun ProfileScreen(
                             }
 
                             Spacer(modifier = Modifier.height(4.dp))
-
-                            // Status Verifikasi (hanya untuk mitra)
                             if (currentUser?.role == "mitra") {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -245,22 +236,16 @@ fun ProfileScreen(
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
-
-                    // Tombol Ganti Password
-                    if (navController != null) {
-                        OutlinedButton(
-                            onClick = { navController.navigate(Screen.ChangePassword) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 8.dp)
-                        ) {
-                            Icon(Icons.Rounded.Lock, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Ganti Password")
-                        }
+                    OutlinedButton(
+                        onClick = onNavigateToChangePassword,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Icon(Icons.Rounded.Lock, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ganti Password")
                     }
-
-                    // Tombol Logout
                     Button(
                         onClick = onLogout,
                         modifier = Modifier.fillMaxWidth(),

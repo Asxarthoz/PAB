@@ -1,8 +1,8 @@
-// feature/homepage/presentation/HomepageScreen.kt
 package com.example.tourtest.feature.homepage.presentation
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,17 +20,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.model.Destination
 import com.example.tourtest.feature.homepage.manager.HomepageManager
-import com.example.tourtest.feature.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomepageScreen(
-    navController: NavController
+    onNavigateToProfile: () -> Unit
 ) {
     val context = LocalContext.current
     val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
@@ -89,10 +87,7 @@ fun HomepageScreen(
                             contentDescription = if (isSearchActive) "Tutup pencarian" else "Cari"
                         )
                     }
-                    // Navigasi ke Profile (Type-Safe)
-                    IconButton(onClick = {
-                        navController.navigate(Screen.Profile)
-                    }) {
+                    IconButton(onClick = onNavigateToProfile) {
                         Icon(Icons.Default.Person, contentDescription = "Profile")
                     }
                 },
@@ -107,7 +102,6 @@ fun HomepageScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header
             if (!isSearchActive && searchQuery.isBlank()) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -124,8 +118,6 @@ fun HomepageScreen(
                     )
                 }
             }
-
-            // Info hasil pencarian
             if (isSearchActive || searchQuery.isNotBlank()) {
                 Row(
                     modifier = Modifier
@@ -146,10 +138,7 @@ fun HomepageScreen(
                     }
                 }
             }
-
-            // List Destinasi
             if (filteredDestinations.isEmpty()) {
-                // Tampilan kosong
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -211,7 +200,6 @@ fun DestinationCard(
         shape = MaterialTheme.shapes.medium
     ) {
         Column {
-            // Gambar Destinasi
             AsyncImage(
                 model = destination.imageUrl,
                 contentDescription = destination.name,
@@ -222,20 +210,15 @@ fun DestinationCard(
                 placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
                 error = painterResource(R.drawable.undraw_loading_ui_egb4)
             )
-
-            // Informasi Destinasi
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Nama Destinasi
                 Text(
                     text = destination.name,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
-
-                // Tombol Lokasi (Maps)
                 TextButton(
                     onClick = openMaps,
                     contentPadding = PaddingValues(0.dp)
@@ -252,8 +235,6 @@ fun DestinationCard(
                         fontSize = 14.sp
                     )
                 }
-
-                // Harga
                 Text(
                     text = "Mulai dari ${destination.price}",
                     fontWeight = FontWeight.SemiBold,

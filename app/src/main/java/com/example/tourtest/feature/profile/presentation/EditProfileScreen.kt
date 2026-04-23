@@ -1,4 +1,3 @@
-
 package com.example.tourtest.feature.profile.presentation
 
 import android.graphics.Bitmap
@@ -20,6 +19,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,22 +34,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import com.example.tourtest.feature.profile.manager.ProfileManager
 import kotlinx.coroutines.launch
 import android.util.Patterns
+import android.util.Log
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.util.Log
-import androidx.compose.material.icons.filled.Delete
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
-    navController: NavController,
+    onBack: () -> Unit,
     profileManager: ProfileManager
 ) {
     Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")
@@ -72,11 +69,16 @@ fun EditProfileScreen(
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        profileManager.loadUserFromFile()
+    }
+
     LaunchedEffect(profileImagePath) {
         if (profileImagePath != null) {
             profileBitmap = profileManager.loadProfileImage(profileImagePath)
         }
     }
+
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -117,7 +119,7 @@ fun EditProfileScreen(
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
             Toast.makeText(context, "Profil berhasil diupdate!", Toast.LENGTH_SHORT).show()
-            navController.popBackStack()
+            onBack()
         }
     }
 
@@ -132,7 +134,7 @@ fun EditProfileScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
@@ -199,7 +201,6 @@ fun EditProfileScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Box(
                 modifier = Modifier
                     .size(120.dp)
