@@ -272,10 +272,10 @@ fun AuthScreen(
                                     else -> {
                                         val success = AuthManager.registerUser(
                                             context = context,
-                                            name = name,
-                                            nickname = nickname,
-                                            email = emailOrNickname,
-                                            password = password
+                                            name = name.trim(),
+                                            nickname = nickname.trim(),
+                                            email = emailOrNickname.trim(),
+                                            password = password.trim()
                                         )
 
                                         if (success) {
