@@ -7,7 +7,7 @@ import java.util.UUID
 object ItineraryManager {
     private const val INTERNAL_FILE_NAME = "dataitinerary.txt"
 
-    fun addItinerary(context: Context, currentUserId: String, destinationId: String, date: String): Boolean {
+    fun addDestination(context: Context, currentUserId: String, destinationId: String, date: String): Boolean {
         return try {
             val newItinerary = Itinerary(
                 id = UUID.randomUUID().toString(),
@@ -28,7 +28,7 @@ object ItineraryManager {
         }
     }
 
-    fun removeItinerary(context: Context, itineraryId: String): Boolean {
+    fun removeDestination(context: Context, itineraryId: String): Boolean {
         return try {
             val allItinerary = getAllItinerary(context)
             val updatedList = allItinerary.filterNot { it.id == itineraryId }

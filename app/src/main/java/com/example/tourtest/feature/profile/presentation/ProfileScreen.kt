@@ -7,6 +7,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Lock
@@ -20,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,7 +40,9 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
-    onNavigateToFullScreenImage: () -> Unit
+    onNavigateToFullScreenImage: () -> Unit,
+    onNavigateToWishlist: () -> Unit,
+    onNavigateToItinerary: () -> Unit,
 ) {
     val context = LocalContext.current
     val profileManager = remember { ProfileManager(context) }
@@ -232,6 +239,62 @@ fun ProfileScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { onNavigateToWishlist() },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                    ){
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite, // icon wishlist
+                                contentDescription = null,
+                                tint = Color.Red
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "Destinasi Favorit",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                                contentDescription = null
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { onNavigateToItinerary() },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange, // icon itinerary
+                                contentDescription = null,
+                                tint = Color.Red
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "Rencana Destinasi",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                                contentDescription = null
+                            )
                         }
                     }
 

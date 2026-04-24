@@ -26,4 +26,10 @@ object Routes {
 
     @Serializable
     data class DetailRoute(val destinationId: String) : NavKey
+
+    @Serializable
+    data object  WishlistRoute : NavKey
+
+    @Serializable
+    data object ItineraryRoute : NavKey
 }

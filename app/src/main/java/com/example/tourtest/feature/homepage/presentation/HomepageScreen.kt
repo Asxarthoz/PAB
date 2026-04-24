@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -26,7 +27,13 @@ import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
 import com.example.tourtest.model.Destination
 import com.example.tourtest.feature.homepage.manager.HomepageManager
+import com.example.tourtest.feature.itinerary.manager.ItineraryManager
+import com.example.tourtest.feature.wishlist.manager.WishlistManager
+import com.example.tourtest.model.Itinerary
 import com.example.tourtest.model.WishList
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +46,8 @@ fun HomepageScreen(
 
     val currentUserId = AuthManager.getCurrentUserId()?: ""
     var wishListIds by remember { mutableStateOf(setOf<String>()) }
+    var itineraryListIds by remember { mutableStateOf(setOf<String>()) }
+
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
     val filteredDestinations = remember(searchQuery, allDestinations) {
@@ -49,6 +58,14 @@ fun HomepageScreen(
                 destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true) || destination.description.contains(searchQuery, ignoreCase = true)
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        val myWishlist = WishlistManager.getAllWish(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
+        wishListIds = myWishlist
+
+        val myItineraryList = ItineraryManager.getAllItinerary(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
+        itineraryListIds = myItineraryList
     }
 
     val listState = rememberLazyListState()
@@ -181,17 +198,28 @@ fun HomepageScreen(
                 ) {
                     items(filteredDestinations) { destination ->
                         val isFavorite = wishListIds.contains(destination.id)
+                        val isItineraried = itineraryListIds.contains(destination.id)
                         DestinationCard(
                             destination = destination,
                             isWishlisted = isFavorite,
+                            isItineraried = isItineraried,
                             onWishListClick = {
                                 if (isFavorite) {
-//                                    WishlistManager.removeDestination(context, currentUserId, destination.id)
+                                    WishlistManager.removeDestination(context, currentUserId, destination.id)
+                                    wishListIds = wishListIds - destination.id
                                 } else {
-//                                     WishlistManager.addDestination(context, currentUserId, destination.id)
+                                    WishlistManager.addDestination(context, currentUserId, destination.id)
+                                    wishListIds = wishListIds + destination.id
                                 }
                             },
-                            onClick = {onNavigateToDetail(destination.id)})
+                            onItineraryClick = { selectedDate ->
+                                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
+                                if (success) {
+                                    itineraryListIds = itineraryListIds + destination.id
+                                }
+                            },
+                            onClick = {onNavigateToDetail(destination.id)}
+                        )
                     }
                 }
             }
@@ -199,14 +227,45 @@ fun HomepageScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationCard(
     destination: Destination,
     isWishlisted: Boolean,
+    isItineraried: Boolean,
     onWishListClick: () -> Unit,
+    onItineraryClick: (String) -> Unit,
     onClick:() -> Unit
 ) {
     val context = LocalContext.current
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var datePickerState = rememberDatePickerState()
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val selectedDate = datePickerState.selectedDateMillis
+                    if (selectedDate != null) {
+                        val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(
+                            Date(selectedDate)
+                        )
+                        onItineraryClick(formattedDate)
+                    }
+                    showDatePicker = false
+                }) { Text(text = "Pilih" )}
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false } ) {
+                    Text(text = "Batal")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     val openMaps = {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(destination.gmapUrl))
@@ -231,15 +290,31 @@ fun DestinationCard(
                     error = painterResource(R.drawable.undraw_loading_ui_egb4)
                 )
 
-                IconButton(
-                    onClick = onWishListClick,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                Row(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = "Wishlist",
-                        tint = if (isWishlisted) Color.Red else Color.White
-                    )
+                    IconButton(
+                        onClick = onWishListClick,
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.5f))
+                    ) {
+                        Icon(
+                            imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = "Wishlist",
+                            tint = if (isWishlisted) Color.Red else Color.White
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showDatePicker = true },
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.5f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Itinerary",
+                            tint = if (isItineraried) Color.Cyan else Color.White
+                        )
+                    }
                 }
             }
 
