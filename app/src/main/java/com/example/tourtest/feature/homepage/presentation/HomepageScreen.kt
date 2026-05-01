@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -15,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -24,13 +24,11 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.feature.auth.manager.AuthManager
-import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
 import com.example.tourtest.model.Destination
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.wishlist.manager.WishlistManager
-import com.example.tourtest.model.Itinerary
-import com.example.tourtest.model.WishList
+import okhttp3.internal.format
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,12 +53,13 @@ fun HomepageScreen(
             allDestinations
         } else {
             allDestinations.filter { destination ->
-                destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true) || destination.description.contains(searchQuery, ignoreCase = true)
+                destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true)
+                        || destination.description.contains(searchQuery, ignoreCase = true)
             }
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(currentUserId) {
         val myWishlist = WishlistManager.getAllWish(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
         wishListIds = myWishlist
 
@@ -213,9 +212,16 @@ fun HomepageScreen(
                                 }
                             },
                             onItineraryClick = { selectedDate ->
-                                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
-                                if (success) {
-                                    itineraryListIds = itineraryListIds + destination.id
+                                if (currentUserId.isBlank()) {
+                                    android.widget.Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
+                                    if (success) {
+                                        itineraryListIds = itineraryListIds + destination.id
+                                        android.widget.Toast.makeText(context, "Berhasil simpan ke jadwal!", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        android.widget.Toast.makeText(context, "Gagal simpan ke file!", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             },
                             onClick = {onNavigateToDetail(destination.id)}
@@ -239,32 +245,63 @@ fun DestinationCard(
 ) {
     val context = LocalContext.current
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var datePickerState = rememberDatePickerState()
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+                calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                calendar.set(java.util.Calendar.MINUTE, 0)
+                calendar.set(java.util.Calendar.SECOND, 0)
+                calendar.set(java.util.Calendar.MILLISECOND, 0)
 
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val selectedDate = datePickerState.selectedDateMillis
-                    if (selectedDate != null) {
-                        val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(
-                            Date(selectedDate)
-                        )
-                        onItineraryClick(formattedDate)
-                    }
-                    showDatePicker = false
-                }) { Text(text = "Pilih" )}
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false } ) {
-                    Text(text = "Batal")
-                }
+                val startOfToday = calendar.timeInMillis
+
+
+                return utcTimeMillis >= startOfToday
             }
-        ) {
-            DatePicker(state = datePickerState)
         }
+    )
+
+    if (showBottomSheet) {
+       ModalBottomSheet(
+           onDismissRequest = { showBottomSheet = false },
+           sheetState = sheetState,
+           containerColor = MaterialTheme.colorScheme.surface
+       ) {
+           Column(
+               modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+               horizontalAlignment = Alignment.CenterHorizontally
+           ) {
+               Text(
+                   text = "Pilih tanggal rencana",
+                   style = MaterialTheme.typography.titleLarge,
+                   modifier = Modifier.padding(vertical = 16.dp)
+               )
+
+               DatePicker(state = datePickerState, showModeToggle = false)
+
+               Row(
+                   modifier = Modifier.fillMaxWidth(),
+                   horizontalArrangement = Arrangement.End
+               ) {
+                   TextButton(onClick = { showBottomSheet = false }) {
+                       Text(text = "Batal")
+                   }
+                   Button(onClick = {
+                       val selectedDate = datePickerState.selectedDateMillis
+                       if (selectedDate != null) {
+                           val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(selectedDate))
+                           onItineraryClick(formattedDate)
+                       }
+                       showBottomSheet = false
+                   }) {
+                       Text(text = "Pilih")
+                   }
+               }
+           }
+       }
     }
 
     val openMaps = {
@@ -306,7 +343,7 @@ fun DestinationCard(
                     }
 
                     IconButton(
-                        onClick = { showDatePicker = true },
+                        onClick = { showBottomSheet = true },
                         colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.5f))
                     ) {
                         Icon(
