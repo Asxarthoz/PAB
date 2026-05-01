@@ -1,5 +1,4 @@
 package com.example.tourtest.feature.itinerary.presentation
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -31,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,6 +53,10 @@ fun ItineraryScreen(
     var wishListIds by remember { mutableStateOf(setOf<String>()) }
     var itineraries by remember { mutableStateOf(listOf<Itinerary>()) }
 
+    // State Alert
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedItineraryId by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(currentUserId) {
         wishListIds = WishlistManager.getAllWish(context)
             .filter { it.userId == currentUserId }
@@ -64,6 +66,36 @@ fun ItineraryScreen(
     }
 
     val listState = rememberLazyListState()
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(text = "Konfirmasi hapus") },
+            text = { Text(text = "Yakin hapus destinasi dari daftar renacan?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedItineraryId?.let { id ->
+                            ItineraryManager.removeDestination(context, id)
+                            itineraries = itineraries.filter { it.id != id }
+                        }
+                        showDeleteDialog = false
+                        selectedItineraryId = null
+                    }
+                ) {
+                    Text(text = "Hapus", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    selectedItineraryId = null
+                }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -118,7 +150,7 @@ fun ItineraryScreen(
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 ) {
                                     Text(
-                                        text = "📅 Rencana: ${item.date}",
+                                        text = "Rencana: ${item.date}",
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Bold
@@ -145,8 +177,8 @@ fun ItineraryScreen(
 
                                 TextButton(
                                     onClick = {
-                                        ItineraryManager.removeDestination(context, item.id)
-                                        itineraries = itineraries.filter { it.id != item.id }
+                                        selectedItineraryId = item.id
+                                        showDeleteDialog = true
                                     },
                                     modifier = Modifier.align(Alignment.End)
                                 ) {
