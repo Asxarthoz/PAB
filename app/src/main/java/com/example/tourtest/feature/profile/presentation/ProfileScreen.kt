@@ -52,6 +52,7 @@ fun ProfileScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -74,6 +75,32 @@ fun ProfileScreen(
         if (currentUser?.profileImage != null) {
             profileBitmap = profileManager.loadProfileImage(currentUser!!.profileImage)
         }
+    }
+
+    if(showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text(text = "Konfirmasi Keluar") },
+            text = { Text(text = "Yakin ingin Keluar dari Akun?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+
+                ) {
+                    Text("Keluar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                }) {
+                    Text(text = "Batal")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -310,7 +337,9 @@ fun ProfileScreen(
                         Text("Ganti Password")
                     }
                     Button(
-                        onClick = onLogout,
+                        onClick = {
+                            showLogoutDialog = true
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) {
