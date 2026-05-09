@@ -1,4 +1,4 @@
-package com.example.tourtest.feature.wishlist.presentation
+package com.example.tourtest.feature.favorite.presentation
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -27,12 +27,12 @@ import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
-import com.example.tourtest.feature.wishlist.manager.WishlistManager
+import com.example.tourtest.feature.favorite.manager.FavoriteManager
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WishListScreen(
+fun FavoriteScreen(
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -47,7 +47,7 @@ fun WishListScreen(
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentUserId) {
-        wishListIds = WishlistManager.getAllWish(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
+        wishListIds = FavoriteManager.getAllFavorite(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
 
         itineraryListIds = ItineraryManager.getAllItinerary(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
     }
@@ -62,7 +62,7 @@ fun WishListScreen(
         message =  "Yakin hapus destinasi dari daftar favorit?",
         onConfirm = {
             selectedDestinationId?.let { id ->
-                WishlistManager.removeDestination(context, currentUserId, id)
+                FavoriteManager.removeDestination(context, currentUserId, id)
                 wishListIds = wishListIds - id
                 Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
             }
@@ -108,7 +108,7 @@ fun WishListScreen(
                                         selectedDestinationId = destination.id
                                         showDeleteFavoriteDialog = true
                                     } else {
-                                        val success = WishlistManager.addDestination(context, currentUserId, destination.id)
+                                        val success = FavoriteManager.addDestination(context, currentUserId, destination.id)
                                         if (success) {
                                             wishListIds = wishListIds + destination.id
                                             Toast.makeText(context, "Berhasil disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()

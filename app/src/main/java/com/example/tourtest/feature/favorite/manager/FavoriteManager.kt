@@ -1,9 +1,9 @@
-package com.example.tourtest.feature.wishlist.manager
+package com.example.tourtest.feature.favorite.manager
 
 import android.content.Context
 import com.example.tourtest.model.WishList
 
-object WishlistManager {
+object FavoriteManager {
     private const val INTERNAL_FILE_NAME = "datawishlist.txt"
     private const val ASSETS_FILE_NAME = "datawishlist.txt"
 
@@ -33,7 +33,7 @@ object WishlistManager {
 
     public fun removeDestination(context: Context, currentUserId : String, destinationId: String): Boolean {
         return try {
-            val wishLists = getAllWish(context)
+            val wishLists = getAllFavorite(context)
             val updatedWish = wishLists.filterNot { it.userId == currentUserId && it.destinationId == destinationId }
 
             context.openFileOutput(INTERNAL_FILE_NAME, Context.MODE_PRIVATE).use { outputStream ->
@@ -50,7 +50,7 @@ object WishlistManager {
         }
     }
 
-    fun getAllWish(context: Context): List<WishList> {
+    fun getAllFavorite(context: Context): List<WishList> {
         val wishLists = mutableListOf<WishList>()
         return try {
             val file = context.getFileStreamPath(INTERNAL_FILE_NAME)
@@ -83,7 +83,7 @@ object WishlistManager {
     }
 
     fun isDestinationExists(context: Context, currentUserId: String, destinationId: String): Boolean {
-        val wishLists = getAllWish(context)
+        val wishLists = getAllFavorite(context)
         return wishLists.any { it.userId == currentUserId && it.destinationId == destinationId }
     }
 }
