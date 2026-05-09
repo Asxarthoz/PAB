@@ -1,8 +1,6 @@
 package com.example.tourtest.feature.wishlist.manager
 
 import android.content.Context
-import com.example.tourtest.feature.auth.manager.AuthManager
-import com.example.tourtest.model.Users
 import com.example.tourtest.model.WishList
 
 object WishlistManager {
