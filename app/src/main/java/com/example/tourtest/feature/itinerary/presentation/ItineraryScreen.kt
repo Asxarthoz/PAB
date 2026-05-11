@@ -1,4 +1,5 @@
 package com.example.tourtest.feature.itinerary.presentation
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,58 +12,46 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.homepage.presentation.DestinationCard
-import com.example.tourtest.feature.itinerary.manager.ItineraryManager
+import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
 import com.example.tourtest.feature.wishlist.manager.WishlistManager
-import com.example.tourtest.model.Itinerary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItineraryScreen(
+    viewModel: ItineraryViewModel,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
     val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
-
-    var wishListIds by remember { mutableStateOf(setOf<String>()) }
-    var itineraries by remember { mutableStateOf(listOf<Itinerary>()) }
-
-    // State Alert
+    val currentUserId = AuthManager.getCurrentUserId() ?: ""
+    val groupedItinerary by viewModel.groupedItinerary.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedItineraryId by remember { mutableStateOf<String?>(null) }
+    var selectedDate by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(Unit) {
+        viewModel.loadItinerary()
+    }
+
+    var wishListIds by remember { mutableStateOf(setOf<String>()) }
     LaunchedEffect(currentUserId) {
         wishListIds = WishlistManager.getAllWish(context)
             .filter { it.userId == currentUserId }
             .map { it.destinationId }.toSet()
-
-        itineraries = ItineraryManager.getItineraryByUser(context, currentUserId)
     }
 
     val listState = rememberLazyListState()
@@ -70,26 +59,29 @@ fun ItineraryScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(text = "Konfirmasi hapus") },
-            text = { Text(text = "Yakin hapus destinasi dari daftar renacan?") },
+            title = { Text("Konfirmasi hapus") },
+            text = { Text("Yakin hapus destinasi dari daftar rencana?") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         selectedItineraryId?.let { id ->
-                            ItineraryManager.removeDestination(context, id)
-                            itineraries = itineraries.filter { it.id != id }
+                            selectedDate?.let { date ->
+                                viewModel.removeFromItinerary(id, date)
+                            }
                         }
                         showDeleteDialog = false
                         selectedItineraryId = null
+                        selectedDate = null
                     }
                 ) {
-                    Text(text = "Hapus", color = MaterialTheme.colorScheme.error)
+                    Text("Hapus", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showDeleteDialog = false
                     selectedItineraryId = null
+                    selectedDate = null
                 }) {
                     Text("Batal")
                 }
@@ -107,12 +99,28 @@ fun ItineraryScreen(
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            if (itineraries.isEmpty()) {
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            error != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            groupedItinerary.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(32.dp),
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -126,37 +134,46 @@ fun ItineraryScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                         Text(
-                            text = "Tidak ada destinasi ditemukan",
+                            text = "Tidak ada rencana perjalanan",
                             fontSize = 16.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            } else {
+            }
+            else -> {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     state = listState,
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    contentPadding = PaddingValues(
+                        top = 16.dp,
+                        bottom = 16.dp,
+                        start = 16.dp,
+                        end = 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(itineraries) { item ->
-                        val destination = allDestinations.find { it.id == item.destinationId }
+                    groupedItinerary.forEach { (date, items) ->
+                        item {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Rencana: $date",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
 
-                        if (destination != null) {
+                        items(items) { itineraryWithDest ->
+                            val destination = itineraryWithDest.destination
                             Column {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    shape = MaterialTheme.shapes.small,
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                ) {
-                                    Text(
-                                        text = "Rencana: ${item.date}",
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
                                 DestinationCard(
                                     destination = destination,
                                     isWishlisted = wishListIds.contains(destination.id),
@@ -174,10 +191,10 @@ fun ItineraryScreen(
                                     onClick = { onNavigateToDetail(destination.id) }
                                 )
 
-
                                 TextButton(
                                     onClick = {
-                                        selectedItineraryId = item.id
+                                        selectedItineraryId = itineraryWithDest.itinerary.id
+                                        selectedDate = date
                                         showDeleteDialog = true
                                     },
                                     modifier = Modifier.align(Alignment.End)

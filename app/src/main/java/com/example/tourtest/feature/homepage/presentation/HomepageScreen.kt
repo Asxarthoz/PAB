@@ -21,6 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.feature.auth.manager.AuthManager
@@ -28,7 +29,7 @@ import com.example.tourtest.model.Destination
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.wishlist.manager.WishlistManager
-import okhttp3.internal.format
+import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,28 +37,19 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomepageScreen(
+    viewModel: HomepageViewModel,
     onNavigateToProfile: () -> Unit,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
     val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
-
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val currentUserId = AuthManager.getCurrentUserId() ?: ""
     var wishListIds by remember { mutableStateOf(setOf<String>()) }
     var itineraryListIds by remember { mutableStateOf(setOf<String>()) }
-
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
-    val filteredDestinations = remember(searchQuery, allDestinations) {
-        if (searchQuery.isBlank()) {
-            allDestinations
-        } else {
-            allDestinations.filter { destination ->
-                destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true)
-                        || destination.description.contains(searchQuery, ignoreCase = true)
-            }
-        }
-    }
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val isSearchActive by viewModel.isSearchActive.collectAsStateWithLifecycle()
+    val filteredDestinations by viewModel.filteredDestinations.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     LaunchedEffect(currentUserId) {
         val myWishlist = WishlistManager.getAllWish(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
@@ -76,7 +68,7 @@ fun HomepageScreen(
                     if (isSearchActive) {
                         TextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            onValueChange = { viewModel.updateSearchQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text("Cari destinasi...") },
                             singleLine = true,
@@ -91,7 +83,7 @@ fun HomepageScreen(
                             },
                             trailingIcon = {
                                 if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
+                                    IconButton(onClick = { viewModel.clearSearch() }) {
                                         Icon(Icons.Default.Close, contentDescription = "Hapus")
                                     }
                                 }
@@ -102,7 +94,7 @@ fun HomepageScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { isSearchActive = !isSearchActive }) {
+                    IconButton(onClick = { viewModel.toggleSearchActive() }) {
                         Icon(
                             if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
                             contentDescription = if (isSearchActive) "Tutup pencarian" else "Cari"
@@ -153,7 +145,7 @@ fun HomepageScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (searchQuery.isNotBlank()) {
-                        TextButton(onClick = { searchQuery = "" }) {
+                        TextButton(onClick = { viewModel.clearSearch() }) {
                             Text("Reset")
                         }
                     }
@@ -224,7 +216,7 @@ fun HomepageScreen(
                                     }
                                 }
                             },
-                            onClick = {onNavigateToDetail(destination.id)}
+                            onClick = { onNavigateToDetail(destination.id) }
                         )
                     }
                 }
@@ -241,7 +233,7 @@ fun DestinationCard(
     isItineraried: Boolean,
     onWishListClick: () -> Unit,
     onItineraryClick: (String) -> Unit,
-    onClick:() -> Unit
+    onClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -257,51 +249,49 @@ fun DestinationCard(
                 calendar.set(java.util.Calendar.MILLISECOND, 0)
 
                 val startOfToday = calendar.timeInMillis
-
-
                 return utcTimeMillis >= startOfToday
             }
         }
     )
 
     if (showBottomSheet) {
-       ModalBottomSheet(
-           onDismissRequest = { showBottomSheet = false },
-           sheetState = sheetState,
-           containerColor = MaterialTheme.colorScheme.surface
-       ) {
-           Column(
-               modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
-               horizontalAlignment = Alignment.CenterHorizontally
-           ) {
-               Text(
-                   text = "Pilih tanggal rencana",
-                   style = MaterialTheme.typography.titleLarge,
-                   modifier = Modifier.padding(vertical = 16.dp)
-               )
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Pilih tanggal rencana",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
 
-               DatePicker(state = datePickerState, showModeToggle = false)
+                DatePicker(state = datePickerState, showModeToggle = false)
 
-               Row(
-                   modifier = Modifier.fillMaxWidth(),
-                   horizontalArrangement = Arrangement.End
-               ) {
-                   TextButton(onClick = { showBottomSheet = false }) {
-                       Text(text = "Batal")
-                   }
-                   Button(onClick = {
-                       val selectedDate = datePickerState.selectedDateMillis
-                       if (selectedDate != null) {
-                           val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(selectedDate))
-                           onItineraryClick(formattedDate)
-                       }
-                       showBottomSheet = false
-                   }) {
-                       Text(text = "Pilih")
-                   }
-               }
-           }
-       }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { showBottomSheet = false }) {
+                        Text(text = "Batal")
+                    }
+                    Button(onClick = {
+                        val selectedDate = datePickerState.selectedDateMillis
+                        if (selectedDate != null) {
+                            val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(selectedDate))
+                            onItineraryClick(formattedDate)
+                        }
+                        showBottomSheet = false
+                    }) {
+                        Text(text = "Pilih")
+                    }
+                }
+            }
+        }
     }
 
     val openMaps = {

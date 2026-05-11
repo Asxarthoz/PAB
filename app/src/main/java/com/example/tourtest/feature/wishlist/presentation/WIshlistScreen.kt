@@ -12,50 +12,35 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.feature.auth.manager.AuthManager
-import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.homepage.presentation.DestinationCard
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
-import com.example.tourtest.feature.wishlist.manager.WishlistManager
+import com.example.tourtest.feature.wishlist.viewmodel.WishlistViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WishListScreen(
+    viewModel: WishlistViewModel,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
+    val wishlistDestinations by viewModel.wishlistDestinations.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
 
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
-    var wishListIds by remember { mutableStateOf(setOf<String>()) }
-
-    LaunchedEffect(currentUserId) {
-        val myWishlist = WishlistManager.getAllWish(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
-        wishListIds = myWishlist
+    LaunchedEffect(Unit) {
+        viewModel.loadWishlist()
     }
 
-    val filteredDestinations = remember(wishListIds, allDestinations) {
-        allDestinations.filter { it.id in wishListIds }
-    }
     val listState = rememberLazyListState()
 
     Scaffold(
@@ -64,25 +49,34 @@ fun WishListScreen(
                 title = {
                     Text("Wishlist Menu", fontWeight = FontWeight.Bold)
                 },
-                actions = {
-
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (filteredDestinations.isEmpty()) {
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            error != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            wishlistDestinations.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(32.dp),
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -96,44 +90,52 @@ fun WishListScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                         Text(
-                            text = "Tidak ada destinasi ditemukan",
+                            text = "Tidak ada destinasi favorit",
                             fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Coba dengan kata kunci lain",
-                            fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            } else {
+            }
+            else -> {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     state = listState,
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    contentPadding = PaddingValues(
+                        top = 16.dp,
+                        bottom = 16.dp,
+                        start = 16.dp,
+                        end = 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredDestinations) { destination ->
-                        val isFavorite = wishListIds.contains(destination.id)
+                    items(wishlistDestinations) { destination ->
+                        val currentDestinationId = destination.id
+                        val isFavorite = viewModel.isFavorite(currentDestinationId)
+
                         DestinationCard(
                             destination = destination,
                             isWishlisted = isFavorite,
                             isItineraried = false,
                             onWishListClick = {
                                 if (isFavorite) {
-                                    WishlistManager.removeDestination(context, currentUserId, destination.id)
-                                    wishListIds = wishListIds - destination.id
+                                    viewModel.removeFromWishlist(currentDestinationId)
                                 } else {
-                                    WishlistManager.addDestination(context, currentUserId, destination.id)
-                                    wishListIds = wishListIds + destination.id
+                                    viewModel.addToWishlist(currentDestinationId)
                                 }
-                            },onItineraryClick = { seletedDate ->
+                            },
+                            onItineraryClick = { selectedDate ->
+                                val currentUserId = AuthManager.getCurrentUserId() ?: ""
                                 ItineraryManager.addDestination(
-                                    context, currentUserId, destination.id, seletedDate
+                                    context = context,
+                                    currentUserId = currentUserId,
+                                    destinationId = currentDestinationId,
+                                    date = selectedDate
                                 )
                             },
-                            onClick = { onNavigateToDetail(destination.id) }
+                            onClick = { onNavigateToDetail(currentDestinationId) }
                         )
                     }
                 }

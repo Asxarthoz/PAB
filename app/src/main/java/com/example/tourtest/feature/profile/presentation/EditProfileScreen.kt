@@ -42,6 +42,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,11 +66,11 @@ fun EditProfileScreen(
     var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
     var nickName by remember(currentUser) { mutableStateOf(currentUser?.nickName ?: "") }
     var email by remember(currentUser) { mutableStateOf(currentUser?.email ?: "") }
+    var showImagePickerDialog by remember { mutableStateOf(false) }
+    var isSaving by rememberSaveable { mutableStateOf(false) }
 
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var showImagePickerDialog by remember { mutableStateOf(false) }
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
-    var isSaving by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         profileManager.loadUserFromFile()
@@ -197,6 +200,7 @@ fun EditProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
