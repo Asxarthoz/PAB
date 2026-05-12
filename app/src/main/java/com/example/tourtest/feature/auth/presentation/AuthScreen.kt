@@ -38,6 +38,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.ui.theme.TourizmeTheme
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,13 +48,13 @@ fun AuthScreen(
     onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-    var isLogin by remember { mutableStateOf(true) }
-    var name by remember { mutableStateOf("") }
-    var nickname by remember { mutableStateOf("") }
-    var emailOrNickname by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    var isLogin by rememberSaveable { mutableStateOf(true) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var nickname by rememberSaveable { mutableStateOf("") }
+    var emailOrNickname by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -66,6 +69,7 @@ fun AuthScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)

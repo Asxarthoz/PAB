@@ -5,7 +5,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowForward
@@ -32,48 +34,45 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.profile.manager.ProfileManager
+import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.model.Users
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    viewModel: ProfileViewModel,
     onLogout: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
-    onNavigateToFullScreenImage: () -> Unit,
+    onNavigateToFullScreenImage: () -> Unit
 ) {
     val context = LocalContext.current
+
+    val currentUserState by viewModel.currentUser.collectAsStateWithLifecycle()
+    val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
     val profileManager = remember { ProfileManager(context) }
 
-    var currentUser by remember { mutableStateOf<Users?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
-    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        isLoading = true
-
-        val userId = AuthManager.getCurrentUserId()
-        if (userId != null) {
-            val user = AuthManager.getUserById(context, userId)
-            currentUser = user
-            if (user == null) {
-                errorMessage = "User tidak ditemukan"
-            }
-        } else {
-            errorMessage = "Belum ada user yang login"
-        }
-
-        isLoading = false
-    }
-
-    LaunchedEffect(currentUser) {
-        if (currentUser?.profileImage != null) {
-            profileBitmap = profileManager.loadProfileImage(currentUser!!.profileImage)
+        val startTime = System.currentTimeMillis()
+        viewModel.loadUser()
+        val elapsed = System.currentTimeMillis() - startTime
+        if (elapsed < 500) {
+            delay(500 - elapsed)
         }
     }
+
+//    LaunchedEffect(currentUser) {
+//        if (currentUser?.profileImage != null) {
+//            profileBitmap = profileManager.loadProfileImage(currentUser!!.profileImage)
+//        }
+//    }
 
     if(showLogoutDialog) {
         AlertDialog(
@@ -106,7 +105,7 @@ fun ProfileScreen(
             TopAppBar(
                 title = { Text("Profil Wisatawan") },
                 actions = {
-                    if (currentUser != null) {
+                    if (currentUserState != null) {
                         IconButton(
                             onClick = onNavigateToEditProfile
                         ) {
@@ -128,10 +127,20 @@ fun ProfileScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "Memuat data profil...",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
-            errorMessage != null -> {
+            error != null -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -140,7 +149,7 @@ fun ProfileScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = errorMessage!!,
+                            text = error!!,
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -150,10 +159,11 @@ fun ProfileScreen(
                     }
                 }
             }
-            currentUser != null -> {
+            currentUserState != null -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                         .padding(paddingValues)
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -186,6 +196,7 @@ fun ProfileScreen(
                             )
                         }
                     }
+
                     Spacer(modifier = Modifier.height(24.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -195,26 +206,26 @@ fun ProfileScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             ProfileItem(
                                 label = "Nama Lengkap",
-                                value = currentUser!!.name,
+                                value = currentUserState!!.name,
                                 icon = Icons.Rounded.Person
                             )
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                             ProfileItem(
                                 label = "Nickname",
-                                value = currentUser!!.nickName,
+                                value = currentUserState!!.nickName,
                                 icon = Icons.Rounded.Person
                             )
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                             ProfileItem(
                                 label = "Alamat Email",
-                                value = currentUser!!.email,
+                                value = currentUserState!!.email,
                                 icon = Icons.Rounded.Email
                             )
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                            val maskedPassword = "*".repeat(currentUser!!.password.length).ifEmpty { "********" }
+                            val maskedPassword = "*".repeat(currentUserState!!.password.length).ifEmpty { "********" }
                             ProfileItem(
                                 label = "Kata Sandi",
                                 value = maskedPassword,
@@ -232,7 +243,7 @@ fun ProfileScreen(
                                     color = Color.Gray
                                 )
                                 Text(
-                                    text = when(currentUser!!.role) {
+                                    text = when(currentUserState!!.role) {
                                         "admin" -> "Administrator"
                                         "mitra" -> "Mitra"
                                         else -> "Wisatawan"
@@ -243,7 +254,8 @@ fun ProfileScreen(
                             }
 
                             Spacer(modifier = Modifier.height(4.dp))
-                            if (currentUser?.role == "mitra") {
+
+                            if (currentUserState!!.role == "mitra") {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -254,10 +266,10 @@ fun ProfileScreen(
                                         color = Color.Gray
                                     )
                                     Text(
-                                        text = if (currentUser!!.isVerified) "✓ Terverifikasi" else "✗ Belum diverifikasi",
+                                        text = if (currentUserState!!.isVerified) "✓ Terverifikasi" else "✗ Belum diverifikasi",
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = if (currentUser!!.isVerified)
+                                        color = if (currentUserState!!.isVerified)
                                             MaterialTheme.colorScheme.primary
                                         else
                                             MaterialTheme.colorScheme.error
@@ -267,7 +279,8 @@ fun ProfileScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(32.dp))
+
                     OutlinedButton(
                         onClick = onNavigateToChangePassword,
                         modifier = Modifier
@@ -278,10 +291,9 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Ganti Password")
                     }
+
                     Button(
-                        onClick = {
-                            showLogoutDialog = true
-                        },
+                        onClick = { showLogoutDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) {

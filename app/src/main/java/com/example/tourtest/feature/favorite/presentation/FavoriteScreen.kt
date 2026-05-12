@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
@@ -28,33 +30,34 @@ import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
+import com.example.tourtest.feature.wishlist.viewmodel.WishlistViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoriteScreen(
+    viewModel: WishlistViewModel,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
-
     val currentUserId = AuthManager.getCurrentUserId()?: ""
+
+    val filteredDestinations by viewModel.wishlistDestinations.collectAsStateWithLifecycle()
+    val wishListIds by viewModel.wishlistIds.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+
     var itineraryListIds by remember { mutableStateOf(setOf<String>()) }
-    var wishListIds by remember { mutableStateOf(setOf<String>()) }
 
     // State Alert
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentUserId) {
-        wishListIds = FavoriteManager.getAllFavorite(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
+        viewModel.loadWishlist()
 
         itineraryListIds = ItineraryManager.getAllItinerary(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
     }
 
-    val filteredDestinations = remember(wishListIds, allDestinations) {
-        allDestinations.filter { it.id in wishListIds }
-    }
     val listState = rememberLazyListState()
 
     TourizmeDeleteDialog(
@@ -62,8 +65,7 @@ fun FavoriteScreen(
         message =  "Yakin hapus destinasi dari daftar favorit?",
         onConfirm = {
             selectedDestinationId?.let { id ->
-                FavoriteManager.removeDestination(context, currentUserId, id)
-                wishListIds = wishListIds - id
+                viewModel.removeFromWishlist(id)
                 Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
             }
             showDeleteFavoriteDialog = false
@@ -85,7 +87,10 @@ fun FavoriteScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (filteredDestinations.isEmpty()) {
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxSize())
+            }
+            else if (filteredDestinations.isEmpty()) {
                 TourizmeEmptyState("Tidak ada destinasi ditemukan", "Coba dengan kata kunci lain!")
             } else {
                 LazyColumn(
@@ -110,8 +115,10 @@ fun FavoriteScreen(
                                     } else {
                                         val success = FavoriteManager.addDestination(context, currentUserId, destination.id)
                                         if (success) {
-                                            wishListIds = wishListIds + destination.id
-                                            Toast.makeText(context, "Berhasil disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
+//                                            wishListIds = wishListIds + destination.id
+                                            viewModel.addToWishlist(destination.id)
+                                            Toast.makeText(context, "Berhasil disi" +
+                                                    "mpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
                                         } else {
                                             Toast.makeText(context, "Gagal disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
                                         }

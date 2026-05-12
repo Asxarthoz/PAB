@@ -9,20 +9,36 @@ object ItineraryManager {
 
     fun addDestination(context: Context, currentUserId: String, destinationId: String, date: String): Boolean {
         return try {
+            android.util.Log.d("ITINERARY_DEBUG", "=== DEBUG ADD ITINERARY ===")
+            android.util.Log.d("ITINERARY_DEBUG", "1. currentUserId: $currentUserId")
+            android.util.Log.d("ITINERARY_DEBUG", "2. destinationId: $destinationId")
+            android.util.Log.d("ITINERARY_DEBUG", "3. date: $date")
+            if (currentUserId.isBlank()) {
+                android.util.Log.e("ITINERARY_DEBUG", "ERROR: currentUserId is BLANK!")
+                return false
+            }
+
             val newItinerary = Itinerary(
                 id = UUID.randomUUID().toString(),
                 userId = currentUserId,
                 destinationId = destinationId,
                 date = date
             )
+            android.util.Log.d("ITINERARY_DEBUG", "4. newItinerary id: ${newItinerary.id}")
 
             val data = "${newItinerary.id}|${newItinerary.userId}|${newItinerary.destinationId}|${newItinerary.date}\n"
+            android.util.Log.d("ITINERARY_DEBUG", "5. data to save: $data")
 
             context.openFileOutput(INTERNAL_FILE_NAME, Context.MODE_APPEND).use { outputStream ->
                 outputStream.write(data.toByteArray())
             }
+
+            val file = context.getFileStreamPath(INTERNAL_FILE_NAME)
+            android.util.Log.d("ITINERARY_DEBUG", "6. File exists: ${file.exists()}, size: ${file.length()} bytes")
+
             true
         } catch (e: Exception) {
+            android.util.Log.e("ITINERARY_DEBUG", "EXCEPTION: ${e.message}")
             e.printStackTrace()
             false
         }

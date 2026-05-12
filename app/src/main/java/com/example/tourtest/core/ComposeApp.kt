@@ -1,5 +1,6 @@
 package com.example.tourtest.core
 
+import android.app.Application
 import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -11,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.tourtest.ui.theme.TourizmeTheme
@@ -21,154 +23,58 @@ import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.auth.presentation.AuthScreen
 import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
-import com.example.tourtest.feature.favorite.manager.FavoriteManager
-import com.example.tourtest.feature.favorite.presentation.FavoriteScreen
 import com.example.tourtest.feature.homepage.presentation.HomepageScreen
-import com.example.tourtest.feature.itinerary.manager.ItineraryManager
-import com.example.tourtest.feature.itinerary.presentation.ItineraryScreen
 import com.example.tourtest.feature.profile.manager.PasswordManager
 import com.example.tourtest.feature.profile.manager.ProfileManager
 import com.example.tourtest.feature.profile.presentation.ChangePasswordScreen
 import com.example.tourtest.feature.profile.presentation.EditProfileScreen
 import com.example.tourtest.feature.profile.presentation.FullScreenImageScreen
 import com.example.tourtest.feature.profile.presentation.ProfileScreen
-
-//@Composable
-//fun ComposeApp() {
-//    val backStack = rememberNavBackStack(Routes.AuthRoute)
-//    val context = androidx.compose.ui.platform.LocalContext.current
-
-
-//    TourizmeTheme {
-//        NavDisplay(
-//            backStack = backStack,
-//            entryDecorators = listOf(
-//                rememberSaveableStateHolderNavEntryDecorator(),
-//                rememberViewModelStoreNavEntryDecorator()
-//            ),
-//            entryProvider = entryProvider {
-//                entry<Routes.AuthRoute> {
-//                    AuthScreen(
-//                        onLoginSuccess = { backStack.add(Routes.HomeRoute) }
-//                    )
-//                }
-//
-//                entry<Routes.HomeRoute> {
-//                    HomepageScreen(
-//                        onNavigateToProfile = { backStack.add(Routes.ProfileRoute) },
-//                        onNavigateToDetail = { id ->
-//                            backStack.add(Routes.DetailRoute(destinationId = id))
-//                        }
-//                    )
-//                }
-//
-//                entry<Routes.ProfileRoute> {
-//                    ProfileScreen(
-//                        onLogout = {
-//                            backStack.clear()
-//                            backStack.add(Routes.AuthRoute)
-//                        },
-//                        onNavigateToEditProfile = { backStack.add(Routes.EditProfileRoute) },
-//                        onNavigateToChangePassword = { backStack.add(Routes.ChangePasswordRoute) },
-//                        onNavigateToFullScreenImage = { backStack.add(Routes.FullScreenImageRoute) },
-//                        onNavigateToWishlist = {backStack.add(Routes.WishlistRoute)},
-//                        onNavigateToItinerary = {backStack.add(Routes.ItineraryRoute)}
-//                    )
-//                }
-//
-//                entry<Routes.EditProfileRoute> {
-//                    val profileManager = ProfileManager(context)
-//                    EditProfileScreen(
-//                        onBack = { backStack.removeLastOrNull() },
-//                        profileManager = profileManager
-//                    )
-//                }
-//
-//                entry<Routes.WishlistRoute> {
-//                    WishListScreen(
-//                        onNavigateToDetail = { id ->
-//                            backStack.add(Routes.DetailRoute(destinationId = id))
-//                        }
-//                    )
-//                }
-//
-//
-//                entry<Routes.ItineraryRoute> {
-//                    ItineraryScreen(
-//                        onNavigateToDetail = { id ->
-//                            backStack.add(Routes.DetailRoute(destinationId = id))
-//                        }
-//                    )
-//                }
-//
-//                entry<Routes.ChangePasswordRoute> {
-//                    val passwordManager = PasswordManager(context)
-//                    ChangePasswordScreen(
-//                        onBack = { backStack.removeLastOrNull() },
-//                        passwordManager = passwordManager
-//                    )
-//                }
-//                entry<Routes.FullScreenImageRoute> {
-//                    FullScreenImageScreen(
-//                        onBack = { backStack.removeLastOrNull() },
-//                        imageBitmap = null
-//                    )
-//                }
-//
-//                entry<Routes.DetailRoute> { route ->
-//                    val context = LocalContext.current
-//                    val currentUserId = AuthManager.getCurrentUserId() ?:""
-//
-//                    var wishListIds by remember { mutableStateOf(setOf<String>()) }
-//                    var itineraryListIds by remember { mutableStateOf(setOf<String>()) }
-//
-//                    LaunchedEffect(currentUserId) {
-//                        wishListIds = WishlistManager.getAllFavorite(context)
-//                            .filter { it.userId == currentUserId }
-//                            .map { it.destinationId }
-//                            .toSet()
-//
-//                        itineraryListIds = com.example.tourtest.feature.itinerary.manager.ItineraryManager.getAllItinerary(context)
-//                            .filter { it.userId == currentUserId }
-//                            .map { it.destinationId }
-//                            .toSet()
-//                    }
-//
-//                    val isFavorite = wishListIds.contains(route.destinationId)
-//                    val isPlanned = itineraryListIds.contains(route.destinationId)
-//
-//                    DestinationDetailScreen(
-//                        destinationId = route.destinationId,
-//                        isWishlisted = isFavorite,
-//                        isItineraried = isPlanned,
-//                        onWishListClick = {
-//                            if (isFavorite) {
-//                                WishlistManager.removeDestination(context, currentUserId, route.destinationId)
-//                                wishListIds = wishListIds - route.destinationId
-//                            } else {
-//                                WishlistManager.addDestination(context, currentUserId, route.destinationId)
-//                                wishListIds = wishListIds + route.destinationId
-//                            }
-//                        },
-//                        onItineraryClick = { selectedDate ->
-//                            ItineraryManager.addDestination(
-//                                context, currentUserId, route.destinationId, selectedDate
-//                            )
-//                            itineraryListIds = itineraryListIds + route.destinationId
-//                        },
-//                        onBack = { backStack.removeLastOrNull() }
-//                    )
-//                }
-//            }
-//        )
-//    }
-//}
+import com.example.tourtest.feature.favorite.manager.FavoriteManager
+import com.example.tourtest.feature.favorite.presentation.FavoriteScreen
+import com.example.tourtest.feature.homepage.manager.HomepageManager
+import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
+import com.example.tourtest.feature.itinerary.manager.ItineraryManager
+import com.example.tourtest.feature.itinerary.presentation.ItineraryScreen
+import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
+import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
+import kotlin.collections.contains
 
 @Composable
 fun ComposeApp() {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val application = context.applicationContext as Application
     val currentRoute = navBackStackEntry?.destination?.route
+
+    val homepageViewModel: HomepageViewModel = viewModel {
+        HomepageViewModel(
+            getAllDestinations = { HomepageManager.readDestinationsFromData(context) }
+        )
+    }
+
+    val profileViewModel: ProfileViewModel = viewModel {
+        ProfileViewModel(
+            profileManager = ProfileManager(context)
+        )
+    }
+
+    val favoriteViewModel: FavoriteViewModel = viewModel {
+        FavoriteViewModel(
+            application = application,
+            favoriteManager = FavoriteManager,
+            homepageManager = HomepageManager
+        )
+    }
+
+    val itineraryViewModel: ItineraryViewModel = viewModel {
+        ItineraryViewModel(
+            application = application,
+            itineraryManager = ItineraryManager,
+            homepageManager = HomepageManager
+        )
+    }
 
     TourizmeTheme {
         Scaffold(
@@ -193,25 +99,28 @@ fun ComposeApp() {
                 }
                 composable("home") {
                     HomepageScreen(
+                        viewModel = homepageViewModel,
                         onNavigateToDetail = { id -> navController.navigate("detail/$id") }
                     )
                 }
 
-
                 composable("favorite") {
                     FavoriteScreen (
+                        viewModel = favoriteViewModel,
                         onNavigateToDetail = { id -> navController.navigate("detail/$id") }
                     )
                 }
 
                 composable("itinerary") {
                     ItineraryScreen(
+                        viewModel = itineraryViewModel,
                         onNavigateToDetail = { id -> navController.navigate("detail/$id") }
                     )
                 }
 
                 composable("profile") {
                     ProfileScreen(
+                        viewModel = profileViewModel,
                         onLogout = {
                             navController.navigate("auth") {
                                 popUpTo(0) // Bersihkan semua backstack
@@ -304,6 +213,12 @@ fun ComposeApp() {
                     )
                 }
 
+                composable("full_image") { // Disamakan routenya
+                    FullScreenImageScreen(
+                        onBack = { navController.popBackStack() },
+                        imageBitmap = null
+                    )
+                }
 
                 composable("edit_profile") {
                     val context = LocalContext.current

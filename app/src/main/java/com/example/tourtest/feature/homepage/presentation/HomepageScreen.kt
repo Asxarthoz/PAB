@@ -1,6 +1,9 @@
 package com.example.tourtest.feature.homepage.presentation
 
 import android.widget.Toast
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,25 +13,38 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.example.tourtest.R
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.model.Destination
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
+import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
+import okhttp3.internal.format
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomepageScreen(
 //    onNavigateToProfile: () -> Unit,
+    viewModel: HomepageViewModel,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -40,16 +56,18 @@ fun HomepageScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
-    val filteredDestinations = remember(searchQuery, allDestinations) {
-        if (searchQuery.isBlank()) {
-            allDestinations
-        } else {
-            allDestinations.filter { destination ->
-                destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true)
-                        || destination.description.contains(searchQuery, ignoreCase = true)
-            }
-        }
-    }
+//    val filteredDestinations = remember(searchQuery, allDestinations) {
+//        if (searchQuery.isBlank()) {
+//            allDestinations
+//        } else {
+//            allDestinations.filter { destination ->
+//                destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true)
+//                        || destination.description.contains(searchQuery, ignoreCase = true)
+//            }
+//        }
+//    }
+    val filteredDestinations by viewModel.filteredDestinations.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
@@ -87,7 +105,9 @@ fun HomepageScreen(
                     if (isSearchActive) {
                         TextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            onValueChange = {
+                                searchQuery = it
+                                viewModel.updateSearchQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text("Cari destinasi...") },
                             singleLine = true,
@@ -102,7 +122,9 @@ fun HomepageScreen(
                             },
                             trailingIcon = {
                                 if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
+                                    IconButton(onClick = {
+                                        searchQuery = ""
+                                        viewModel.clearSearch() }) {
                                         Icon(Icons.Default.Close, contentDescription = "Hapus")
                                     }
                                 }
@@ -113,7 +135,14 @@ fun HomepageScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { isSearchActive = !isSearchActive }) {
+                    IconButton(onClick = {
+                        isSearchActive = !isSearchActive // FIXED: Update state lokal
+                        if (!isSearchActive) {
+                            searchQuery = "" // FIXED: Bersihkan saat pencarian ditutup
+                            viewModel.clearSearch()
+                        }
+                        viewModel.toggleSearchActive()
+                    }) {
                         Icon(
                             if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
                             contentDescription = if (isSearchActive) "Tutup pencarian" else "Cari"
@@ -161,7 +190,9 @@ fun HomepageScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (searchQuery.isNotBlank()) {
-                        TextButton(onClick = { searchQuery = "" }) {
+                        TextButton(onClick = {
+                            searchQuery = ""
+                            viewModel.clearSearch() }) {
                             Text("Reset")
                         }
                     }
@@ -222,3 +253,4 @@ fun HomepageScreen(
         }
     }
 }
+
