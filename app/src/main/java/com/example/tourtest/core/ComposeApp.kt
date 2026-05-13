@@ -12,6 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,7 +24,9 @@ import com.example.tourtest.core.components.TourizmeBottombar
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.auth.presentation.AuthScreen
+import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
+import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 import com.example.tourtest.feature.homepage.presentation.HomepageScreen
 import com.example.tourtest.feature.profile.manager.PasswordManager
 import com.example.tourtest.feature.profile.manager.ProfileManager
@@ -32,6 +36,7 @@ import com.example.tourtest.feature.profile.presentation.FullScreenImageScreen
 import com.example.tourtest.feature.profile.presentation.ProfileScreen
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.favorite.presentation.FavoriteScreen
+import com.example.tourtest.feature.favorite.viewmodel.FavoriteViewModel
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
@@ -133,82 +138,26 @@ fun ComposeApp() {
                 }
 
                 composable("detail/{destinationId}") { backStackEntry ->
-                    val context = LocalContext.current
                     val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
                     val currentUserId = AuthManager.getCurrentUserId() ?: ""
-
-                    var favoriteListIds by remember { mutableStateOf(setOf<String>()) }
-                    var itineraryListIds by remember { mutableStateOf(setOf<String>()) }
-
-                    var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
-                    var selectedDestinationId by remember { mutableStateOf<String?>(null) }
-
-                    LaunchedEffect(currentUserId) {
-                        favoriteListIds = FavoriteManager.getAllFavorite(context)
-                            .filter { it.userId == currentUserId }
-                            .map { it.destinationId }.toSet()
-
-                        itineraryListIds = ItineraryManager.getAllItinerary(context)
-                            .filter { it.userId == currentUserId }
-                            .map { it.destinationId }.toSet()
-                    }
-
-                    val isFavorite = favoriteListIds.contains(destinationId)
-                    val isItineraried = itineraryListIds.contains(destinationId)
-
-                    TourizmeDeleteDialog(
-                        show = showDeleteFavoriteDialog,
-                        message =  "Yakin hapus destinasi dari daftar favorit?",
-                        onConfirm = {
-                            selectedDestinationId?.let { id ->
-                                FavoriteManager.removeDestination(context, currentUserId, id)
-                                favoriteListIds = favoriteListIds - id
-                                Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
+                    val viewModel: DetailViewModel = viewModel(
+                        factory = object : ViewModelProvider.Factory {
+                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                                return DetailViewModel(
+                                    application = application,
+                                    destinationId = destinationId,
+                                    currentUserId = currentUserId,
+                                    homepageManager = HomepageManager,
+                                    favoriteManager = FavoriteManager,
+                                    itineraryManager = ItineraryManager
+                                ) as T
                             }
-                            showDeleteFavoriteDialog = false
-                            selectedDestinationId = null
-                        },
-                        onDismiss = {
-                            showDeleteFavoriteDialog = false
-                            selectedDestinationId = null
                         }
                     )
 
                     DestinationDetailScreen(
                         destinationId = destinationId,
-                        isWishlisted = isFavorite,
-                        isItineraried = isItineraried,
-                        onWishListClick = {
-                            if (currentUserId.isBlank()) {
-                                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-                            } else {
-                                if (isFavorite) {
-                                    selectedDestinationId = destinationId
-                                    showDeleteFavoriteDialog = true
-                                } else {
-                                    val success = FavoriteManager.addDestination(context, currentUserId, destinationId)
-                                    if (success) {
-                                        favoriteListIds = favoriteListIds + destinationId
-                                        Toast.makeText(context, "Berhasil disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "Gagal disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        },
-                        onItineraryClick = { selectedDate ->
-                            if (currentUserId.isBlank()) {
-                                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-                            } else {
-                                val success = ItineraryManager.addDestination(context, currentUserId, destinationId, selectedDate)
-                                if (success) {
-                                    itineraryListIds = itineraryListIds + destinationId
-                                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(context, "Gagal disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        },
+                        viewModel = viewModel,
                         onBack = { navController.popBackStack() }
                     )
                 }
