@@ -6,24 +6,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,18 +29,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.unit.sp
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.feature.auth.manager.AuthManager
-import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
-import com.example.tourtest.model.Itinerary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,8 +53,8 @@ fun ItineraryScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
 
-    var wishListIds by remember { mutableStateOf(setOf<String>()) }
-//    var itineraries by remember { mutableStateOf(listOf<Itinerary>()) }
+    var favoriteIds by remember { mutableStateOf(setOf<String>()) }
+    var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
 
     // State Alert
     var showDeleteItineraryDialog by remember { mutableStateOf(false) }
@@ -73,12 +63,19 @@ fun ItineraryScreen(
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(currentUserId) {
-        wishListIds = FavoriteManager.getAllFavorite(context)
+    fun refreshStatus() {
+        favoriteIds = FavoriteManager.getAllFavorite(context)
             .filter { it.userId == currentUserId }
             .map { it.destinationId }.toSet()
 
-//        itineraries = ItineraryManager.getItineraryByUser(context, currentUserId)
+        itinerariedIds = ItineraryManager.getAllItinerary(context)
+            .filter { it.userId == currentUserId }
+            .map { it.destinationId }.toSet()
+    }
+
+    LaunchedEffect(currentUserId) {
+        refreshStatus()
+        viewModel.loadItineraries()
     }
 
     val listState = rememberLazyListState()
@@ -88,8 +85,8 @@ fun ItineraryScreen(
         message = "Yakin hapus destinasi dari daftar rencana?",
         onConfirm = {
             selectedItineraryId?.let { id ->
-                ItineraryManager.removeDestination(context, id)
-//                itineraries = itineraries.filter { it.id != id }
+                viewModel.loadItineraries()
+                refreshStatus()
                 Toast.makeText(context, "Berhasil dihapus dari rencana", android.widget.Toast.LENGTH_SHORT).show()
             }
             showDeleteItineraryDialog = false
@@ -106,7 +103,7 @@ fun ItineraryScreen(
         onConfirm = {
             selectedDestinationId?.let { id ->
                 FavoriteManager.removeDestination(context, currentUserId, id)
-                wishListIds = wishListIds - id
+                favoriteIds = favoriteIds - id
                 Toast.makeText(context, "Dihapus dari favorit", Toast.LENGTH_SHORT).show()
             }
             showDeleteFavoriteDialog = false
@@ -122,33 +119,18 @@ fun ItineraryScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             when {
                 isLoading -> {
-//                    Box(
-//                        modifier = Modifier.fillMaxSize().padding(paddingValues),
-//                        contentAlignment = Alignment.Center
-//                    ) {
-//                        CircularProgressIndicator()
-//                    }
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-
                 error != null -> {
-//                    Box(
-//                        modifier = Modifier.fillMaxSize().padding(paddingValues),
-//                        contentAlignment = Alignment.Center
-//                    ) {
-//                        Text("Error: $error", color = MaterialTheme.colorScheme.error)
-//                    }
                     Text(
                         "Error: $error",
                         modifier = Modifier.align(Alignment.Center),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-
                 groupedItinerary.isEmpty() -> {
                     TourizmeEmptyState("Tidak ada destinasi ditemukan", null)
                 }
-
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -157,24 +139,6 @@ fun ItineraryScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         groupedItinerary.forEach { (date, items) ->
-                            item {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    shape = MaterialTheme.shapes.small,
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                ) {
-                                    Text(
-                                        text = "Tanggal: $date",
-                                        modifier = Modifier.padding(
-                                            horizontal = 8.dp,
-                                            vertical = 4.dp
-                                        ),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
                             items(items) { itineraryItem ->
                                 val destination =
                                     allDestinations.find { it.id == itineraryItem.destination.id }
@@ -187,7 +151,7 @@ fun ItineraryScreen(
                                             modifier = Modifier.padding(bottom = 8.dp)
                                         ) {
                                             Text(
-                                                text = "Tanggal: $date}",
+                                                text = "Tanggal: $date",
                                                 modifier = Modifier.padding(
                                                     horizontal = 8.dp,
                                                     vertical = 4.dp
@@ -197,7 +161,7 @@ fun ItineraryScreen(
                                             )
                                         }
 
-                                        val isFavorite = wishListIds.contains(destination.id)
+                                        val isFavorite = favoriteIds.contains(destination.id)
                                         DestinationCard(
                                             destination = destination,
                                             isWishlisted = isFavorite,
@@ -221,8 +185,8 @@ fun ItineraryScreen(
                                                                 destination.id
                                                             )
                                                         if (success) {
-                                                            wishListIds =
-                                                                wishListIds + destination.id
+                                                            favoriteIds =
+                                                                favoriteIds + destination.id
                                                             Toast.makeText(
                                                                 context,
                                                                 "Berhasil disimpan ke daftar favorit",
@@ -239,17 +203,17 @@ fun ItineraryScreen(
                                                 }
                                             },
                                             onItineraryClick = { selectedDate ->
-//                                            if (currentUserId.isBlank()) {
-//                                                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-//                                            } else {
-//                                                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
-//                                                if (success) {
-//                                                    itineraries = ItineraryManager.getItineraryByUser(context, currentUserId)
-//                                                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-//                                                } else {
-//                                                    Toast.makeText(context, "Gagal disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-//                                                }
-//                                            }
+                                            if (currentUserId.isBlank()) {
+                                                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
+                                                if (success) {
+                                                    viewModel.loadItineraries()
+                                                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    Toast.makeText(context, "Gagal disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
                                             },
                                             onClick = { onNavigateToDetail(destination.id) }
                                         )
