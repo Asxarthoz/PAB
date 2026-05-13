@@ -27,35 +27,39 @@ import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.feature.auth.manager.AuthManager
-import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
-import com.example.tourtest.feature.wishlist.viewmodel.WishlistViewModel
-
+import com.example.tourtest.feature.favorite.viewmodel.FavoriteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoriteScreen(
-    viewModel: WishlistViewModel,
+    viewModel: FavoriteViewModel,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
     val currentUserId = AuthManager.getCurrentUserId()?: ""
 
-    val filteredDestinations by viewModel.wishlistDestinations.collectAsStateWithLifecycle()
-    val wishListIds by viewModel.wishlistIds.collectAsStateWithLifecycle()
+    val favoriteDestinations by viewModel.favoriteDestinations.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
-    var itineraryListIds by remember { mutableStateOf(setOf<String>()) }
+    var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
 
     // State Alert
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(currentUserId) {
-        viewModel.loadWishlist()
+    fun refreshItineraryStatus() {
+        itinerariedIds = ItineraryManager.getAllItinerary(context)
+            .filter { it.userId == currentUserId }
+            .map { it.destinationId }
+            .toSet()
+    }
 
-        itineraryListIds = ItineraryManager.getAllItinerary(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
+    LaunchedEffect(currentUserId) {
+        viewModel.loadFavorite()
+        refreshItineraryStatus()
     }
 
     val listState = rememberLazyListState()
@@ -65,7 +69,7 @@ fun FavoriteScreen(
         message =  "Yakin hapus destinasi dari daftar favorit?",
         onConfirm = {
             selectedDestinationId?.let { id ->
-                viewModel.removeFromWishlist(id)
+                viewModel.removeFromFavorite(id)
                 Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
             }
             showDeleteFavoriteDialog = false
@@ -90,7 +94,7 @@ fun FavoriteScreen(
             if (isLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxSize())
             }
-            else if (filteredDestinations.isEmpty()) {
+            else if (favoriteDestinations.isEmpty()) {
                 TourizmeEmptyState("Tidak ada destinasi ditemukan", "Coba dengan kata kunci lain!")
             } else {
                 LazyColumn(
@@ -99,12 +103,13 @@ fun FavoriteScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(filteredDestinations) { destination ->
-                        val isFavorite = wishListIds.contains(destination.id)
+                    items(favoriteDestinations) { destination ->
+                        val isFavorite = favoriteIds.contains(destination.id)
+                        val isItineraried = itinerariedIds.contains(destination.id)
                         DestinationCard(
                             destination = destination,
                             isWishlisted = isFavorite,
-                            isItineraried = false,
+                            isItineraried = isItineraried,
                             onWishListClick = {
                                 if (currentUserId.isBlank()) {
                                     Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
@@ -113,15 +118,8 @@ fun FavoriteScreen(
                                         selectedDestinationId = destination.id
                                         showDeleteFavoriteDialog = true
                                     } else {
-                                        val success = FavoriteManager.addDestination(context, currentUserId, destination.id)
-                                        if (success) {
-//                                            wishListIds = wishListIds + destination.id
-                                            viewModel.addToWishlist(destination.id)
-                                            Toast.makeText(context, "Berhasil disi" +
-                                                    "mpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            Toast.makeText(context, "Gagal disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
+                                        viewModel.addToFavorite(destination.id)
+                                        Toast.makeText(context, "Disimpan ke favorit", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             },onItineraryClick = { selectedDate ->
@@ -130,6 +128,7 @@ fun FavoriteScreen(
                                 } else {
                                     val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
                                     if (success) {
+                                        refreshItineraryStatus()
                                         Toast.makeText(context, "Berhasil disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
                                     } else {
                                         Toast.makeText(context, "Gagal disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
