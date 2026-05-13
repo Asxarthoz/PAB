@@ -9,36 +9,36 @@ object ItineraryManager {
 
     fun addDestination(context: Context, currentUserId: String, destinationId: String, date: String): Boolean {
         return try {
-            android.util.Log.d("ITINERARY_DEBUG", "=== DEBUG ADD ITINERARY ===")
-            android.util.Log.d("ITINERARY_DEBUG", "1. currentUserId: $currentUserId")
-            android.util.Log.d("ITINERARY_DEBUG", "2. destinationId: $destinationId")
-            android.util.Log.d("ITINERARY_DEBUG", "3. date: $date")
+            val allItinerary = getAllItinerary(context).toMutableList()
+
             if (currentUserId.isBlank()) {
                 android.util.Log.e("ITINERARY_DEBUG", "ERROR: currentUserId is BLANK!")
                 return false
             }
 
-            val newItinerary = Itinerary(
-                id = UUID.randomUUID().toString(),
-                userId = currentUserId,
-                destinationId = destinationId,
-                date = date
-            )
-            android.util.Log.d("ITINERARY_DEBUG", "4. newItinerary id: ${newItinerary.id}")
-
-            val data = "${newItinerary.id}|${newItinerary.userId}|${newItinerary.destinationId}|${newItinerary.date}\n"
-            android.util.Log.d("ITINERARY_DEBUG", "5. data to save: $data")
-
-            context.openFileOutput(INTERNAL_FILE_NAME, Context.MODE_APPEND).use { outputStream ->
-                outputStream.write(data.toByteArray())
+            val existingIndex = allItinerary.indexOfFirst {
+                it.userId == currentUserId && it.destinationId == destinationId
             }
 
-            val file = context.getFileStreamPath(INTERNAL_FILE_NAME)
-            android.util.Log.d("ITINERARY_DEBUG", "6. File exists: ${file.exists()}, size: ${file.length()} bytes")
+            if (existingIndex != -1) {
+                // FITUR EDIT: Perbarui tanggal jika sudah ada
+                val existingItem = allItinerary[existingIndex]
+                allItinerary[existingIndex] = existingItem.copy(date = date)
+            } else {
+                // FITUR TAMBAH: Buat entri baru jika belum ada
+                allItinerary.add(
+                    Itinerary(
+                        id = UUID.randomUUID().toString(),
+                        userId = currentUserId,
+                        destinationId = destinationId,
+                        date = date
+                    )
+                )
+            }
 
+            saveAll(context, allItinerary)
             true
         } catch (e: Exception) {
-            android.util.Log.e("ITINERARY_DEBUG", "EXCEPTION: ${e.message}")
             e.printStackTrace()
             false
         }
@@ -49,13 +49,7 @@ object ItineraryManager {
             val allItinerary = getAllItinerary(context)
             val updatedList = allItinerary.filterNot { it.id == itineraryId }
 
-            context.openFileOutput(INTERNAL_FILE_NAME, Context.MODE_PRIVATE).use { outputStream ->
-                val stringBuilder = StringBuilder()
-                for (item in updatedList) {
-                    stringBuilder.append("${item.id}|${item.userId}|${item.destinationId}|${item.date}\n")
-                }
-                outputStream.write(stringBuilder.toString().toByteArray())
-            }
+            saveAll(context, updatedList)
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -65,11 +59,12 @@ object ItineraryManager {
 
     fun getAllItinerary(context: Context): List<Itinerary> {
         val itineraryList = mutableListOf<Itinerary>()
+        val file = context.getFileStreamPath(INTERNAL_FILE_NAME)
+
+        if (!file.exists()) return  itineraryList
         return try {
-            val file = context.getFileStreamPath(INTERNAL_FILE_NAME)
-            if (file.exists()) {
-                val content = context.openFileInput(INTERNAL_FILE_NAME).bufferedReader().use { it.readText() }
-                content.lines().forEach { line ->
+            context.openFileInput(INTERNAL_FILE_NAME).bufferedReader().useLines { lines ->
+                lines.forEach { line ->
                     val parts = line.split("|").map { it.trim() }
                     if (parts.size >= 4) {
                         itineraryList.add(
@@ -87,6 +82,15 @@ object ItineraryManager {
         } catch (e: Exception) {
             e.printStackTrace()
             itineraryList
+        }
+    }
+
+    private fun saveAll(context: Context, list: List<Itinerary>) {
+        context.openFileOutput(INTERNAL_FILE_NAME, Context.MODE_PRIVATE).use { output ->
+            val data = list.joinToString("") { item ->
+                "${item.id}|${item.userId}|${item.destinationId}|${item.date}\n"
+            }
+            output.write(data.toByteArray())
         }
     }
 
