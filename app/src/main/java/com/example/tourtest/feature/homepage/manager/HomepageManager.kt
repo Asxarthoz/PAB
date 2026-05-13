@@ -5,7 +5,11 @@ import com.example.tourtest.model.Destination
 import kotlin.sequences.forEach
 
 object HomepageManager {
+    private var cacheDestination: List<Destination>? = null
+
     public fun readDestinationsFromData(context: Context): List<Destination> {
+        if (cacheDestination != null) return cacheDestination!!
+
         val list = mutableListOf<Destination>()
         try {
             context.assets.open("datawisata.txt").bufferedReader().useLines { lines ->
@@ -14,6 +18,7 @@ object HomepageManager {
                     if (p.size == 7) list.add(Destination(p[0], p[1], p[2], p[3], p[4], p[5], p[6]))
                 }
             }
+            cacheDestination = list
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -24,6 +29,9 @@ object HomepageManager {
     public fun getDestinationById(context: Context, id: String): Destination? {
         val destinationList = readDestinationsFromData(context)
         return destinationList.find { it.id == id }
+    }
 
+    fun clearCache() {
+        cacheDestination = null
     }
 }
