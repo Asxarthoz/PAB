@@ -31,7 +31,7 @@ class ItineraryViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
-    fun loadItinerary() {
+    fun loadItineraries() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -79,5 +79,9 @@ class ItineraryViewModel(
 
     fun clearError() {
         _error.value = null
+    }
+
+    fun refreshItinerary() {
+        loadItineraries()
     }
 }
