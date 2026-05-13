@@ -43,39 +43,36 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomepageScreen(
-//    onNavigateToProfile: () -> Unit,
     viewModel: HomepageViewModel,
     onNavigateToDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
-
     val currentUserId = AuthManager.getCurrentUserId()?: ""
-    var wishListIds by remember { mutableStateOf(setOf<String>()) }
-    var itineraryListIds by remember { mutableStateOf(setOf<String>()) }
+
+    var favoriteIds by remember { mutableStateOf(setOf<String>()) }
+    var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
 
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
-//    val filteredDestinations = remember(searchQuery, allDestinations) {
-//        if (searchQuery.isBlank()) {
-//            allDestinations
-//        } else {
-//            allDestinations.filter { destination ->
-//                destination.name.contains(searchQuery, ignoreCase = true) || destination.location.contains(searchQuery, ignoreCase = true)
-//                        || destination.description.contains(searchQuery, ignoreCase = true)
-//            }
-//        }
-//    }
+
     val filteredDestinations by viewModel.filteredDestinations.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(currentUserId) {
-        wishListIds = FavoriteManager.getAllFavorite(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
+    fun refreshStatus() {
+        favoriteIds = FavoriteManager.getAllFavorite(context)
+            .filter { it.userId == currentUserId }
+            .map { it.destinationId }.toSet()
 
-        itineraryListIds = ItineraryManager.getAllItinerary(context).filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
+        itinerariedIds = ItineraryManager.getAllItinerary(context)
+            .filter { it.userId == currentUserId }
+            .map { it.destinationId }.toSet()
+    }
+
+    LaunchedEffect(currentUserId) {
+         refreshStatus()
     }
 
     val listState = rememberLazyListState()
@@ -85,9 +82,11 @@ fun HomepageScreen(
         message =  "Yakin hapus destinasi dari daftar favorit?",
         onConfirm = {
             selectedDestinationId?.let { id ->
-                FavoriteManager.removeDestination(context, currentUserId, id)
-                wishListIds = wishListIds - id
-                Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
+                val succes = FavoriteManager.removeDestination(context, currentUserId, id)
+                if (succes) {
+                    favoriteIds = favoriteIds - id
+                    Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
+                }
             }
             showDeleteFavoriteDialog = false
             selectedDestinationId = null
@@ -106,7 +105,7 @@ fun HomepageScreen(
                         TextField(
                             value = searchQuery,
                             onValueChange = {
-                                searchQuery = it
+//                                searchQuery = it
                                 viewModel.updateSearchQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text("Cari destinasi...") },
@@ -123,7 +122,7 @@ fun HomepageScreen(
                             trailingIcon = {
                                 if (searchQuery.isNotEmpty()) {
                                     IconButton(onClick = {
-                                        searchQuery = ""
+//                                        searchQuery = ""
                                         viewModel.clearSearch() }) {
                                         Icon(Icons.Default.Close, contentDescription = "Hapus")
                                     }
@@ -136,9 +135,9 @@ fun HomepageScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        isSearchActive = !isSearchActive // FIXED: Update state lokal
+                        isSearchActive = !isSearchActive
                         if (!isSearchActive) {
-                            searchQuery = "" // FIXED: Bersihkan saat pencarian ditutup
+//                            searchQuery = ""
                             viewModel.clearSearch()
                         }
                         viewModel.toggleSearchActive()
@@ -191,8 +190,9 @@ fun HomepageScreen(
                     )
                     if (searchQuery.isNotBlank()) {
                         TextButton(onClick = {
-                            searchQuery = ""
-                            viewModel.clearSearch() }) {
+//                            searchQuery = ""
+                            viewModel.clearSearch() })
+                        {
                             Text("Reset")
                         }
                     }
@@ -208,8 +208,8 @@ fun HomepageScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(filteredDestinations) { destination ->
-                        val isFavorite = wishListIds.contains(destination.id)
-                        val isItineraried = itineraryListIds.contains(destination.id)
+                        val isFavorite = favoriteIds.contains(destination.id)
+                        val isItineraried = itinerariedIds.contains(destination.id)
                         DestinationCard(
                             destination = destination,
                             isWishlisted = isFavorite,
@@ -224,7 +224,7 @@ fun HomepageScreen(
                                     } else {
                                         val success = FavoriteManager.addDestination(context, currentUserId, destination.id)
                                         if (success) {
-                                            wishListIds = wishListIds + destination.id
+                                            favoriteIds = favoriteIds + destination.id
                                             Toast.makeText(context, "Berhasil disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
                                         } else {
                                             Toast.makeText(context, "Gagal disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
@@ -238,7 +238,7 @@ fun HomepageScreen(
                                 } else {
                                     val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
                                     if (success) {
-                                        itineraryListIds = itineraryListIds + destination.id
+                                        itinerariedIds = itinerariedIds + destination.id
                                         Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
                                     } else {
                                         Toast.makeText(context, "Gagal disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
