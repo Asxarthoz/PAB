@@ -2,6 +2,7 @@ package com.example.tourtest.feature.detaildestination.presentation
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,20 +27,24 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.tourtest.R
+import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailDestination(
+fun DestinationDetailScreen(
     viewModel: DetailViewModel,
+    destinationId: String,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val destinationState by viewModel.destination.collectAsStateWithLifecycle()
-    val isWishlisted by viewModel.isFavorite.collectAsStateWithLifecycle()
+
+    val destination by viewModel.destination.collectAsStateWithLifecycle()
+    val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
     val isItineraried by viewModel.isPlanned.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-    val destination = destinationState
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
     val scrollState = rememberScrollState()
@@ -48,6 +53,17 @@ fun DetailDestination(
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(destination?.gmapUrl))
         context.startActivity(intent)
     }
+
+    TourizmeDeleteDialog(
+        show = showDeleteDialog,
+        message = "Yakin ingin menghapus destinasi ini dari favorit?",
+        onConfirm = {
+            viewModel.toggleFavorite() // Logika hapus di ViewModel
+            showDeleteDialog = false
+            Toast.makeText(context, "Dihapus dari favorit", Toast.LENGTH_SHORT).show()
+        },
+        onDismiss = { showDeleteDialog = false }
+    )
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -59,10 +75,11 @@ fun DetailDestination(
                         val formattedDate = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
                             .format(java.util.Date(selectedDate))
                         viewModel.addToItinerary(formattedDate)
+                        Toast.makeText(context, "Jadwal rencana diperbarui", Toast.LENGTH_SHORT).show()
                     }
                     showDatePicker = false
                 }) {
-                    Text("Pilih")
+                    Text("Simpan")
                 }
             },
             dismissButton = {
@@ -116,8 +133,8 @@ fun DetailDestination(
                 ) {
 
                     AsyncImage(
-                        model = destination.imageUrl,
-                        contentDescription = destination.name,
+                        model = destination?.imageUrl,
+                        contentDescription = destination?.name,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
@@ -130,14 +147,19 @@ fun DetailDestination(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-
                         IconButton(
-                            onClick = { viewModel.toggleFavorite() }
+                            onClick = {
+                                if (isFavorite) {
+                                    showDeleteDialog = true
+                                } else {
+                                    viewModel.toggleFavorite()
+                                }
+                            }
                         ) {
                             Icon(
-                                imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                                 contentDescription = "Wishlist",
-                                tint = if (isWishlisted) Color.Red else Color.Gray,
+                                tint = if (isFavorite) Color.Red else Color.Gray,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -155,13 +177,13 @@ fun DetailDestination(
                     }
 
                     Text(
-                        text = destination.name,
+                        text = destination!!.name,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Mulai dari Rp ${destination.price}",
+                        text = "Mulai dari Rp ${destination!!.price}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -178,7 +200,7 @@ fun DetailDestination(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = destination.location,
+                            text = destination!!.location,
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
@@ -190,7 +212,7 @@ fun DetailDestination(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                     Text(
-                        text = destination.description,
+                        text = destination!!.description,
                         textAlign = TextAlign.Justify,
                         lineHeight = 22.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
