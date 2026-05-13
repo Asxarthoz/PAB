@@ -3,9 +3,9 @@ package com.example.tourtest.feature.detaildestination.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
-import com.example.tourtest.feature.wishlist.manager.WishlistManager
 import com.example.tourtest.model.Destination
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +16,8 @@ class DetailViewModel(
     application: Application,
     private val destinationId: String,
     private val currentUserId: String,
-    private val wishlistManager: WishlistManager,
+    private val homepageManager: HomepageManager,
+    private val favoriteManager: FavoriteManager,
     private val itineraryManager: ItineraryManager
 ) : AndroidViewModel(application) {
 
@@ -40,7 +41,7 @@ class DetailViewModel(
     private fun loadDestination() {
         viewModelScope.launch {
             _isLoading.value = true
-            val dest = HomepageManager.getDestinationById(context, destinationId)
+            val dest = homepageManager.getDestinationById(context, destinationId)
             _destination.value = dest
             _isLoading.value = false
         }
@@ -49,8 +50,8 @@ class DetailViewModel(
     private fun loadStatus() {
         viewModelScope.launch {
             try {
-                val wishes = wishlistManager.getAllWish(context)
-                _isFavorite.value = wishes.any {
+                val favorites = favoriteManager.getAllFavorite(context)
+                _isFavorite.value = favorites.any {
                     it.destinationId == destinationId && it.userId == currentUserId
                 }
 
@@ -68,9 +69,9 @@ class DetailViewModel(
         viewModelScope.launch {
             try {
                 if (_isFavorite.value) {
-                    wishlistManager.removeDestination(context, currentUserId, destinationId)
+                    favoriteManager.removeDestination(context, currentUserId, destinationId)
                 } else {
-                    wishlistManager.addDestination(context, currentUserId, destinationId)
+                    favoriteManager.addDestination(context, currentUserId, destinationId)
                 }
                 _isFavorite.value = !_isFavorite.value
             } catch (e: Exception) {
