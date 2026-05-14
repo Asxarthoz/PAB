@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-object NotificatioManager {
+object NotificationManager {
 
     fun checkReminderStatus(itineraryDate: String, destinationName: String): String? {
         return try {
