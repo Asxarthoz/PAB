@@ -66,4 +66,14 @@ class HomepageViewModel(
             }
         }
     }
+
+    fun getGreeting(): String {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        return when (hour) {
+            in 0..11 -> "Selamat pagi"
+            in 12..15 -> "Selamat siang"
+            in 16..18 -> "Selamat sore"
+            else -> "Selamat malam"
+        }
+    }
 }
