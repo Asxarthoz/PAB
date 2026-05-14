@@ -1,3 +1,11 @@
 package com.example.tourtest.model
 
-data class NotificationHistory()
+import android.media.AudioTimestamp
+
+data class NotificationHistory(
+    val id: String,
+    val message: String,
+    val destinationId: String,
+    val timestamp: Long,
+    val isRead: Boolean = false
+)
