@@ -4,19 +4,18 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tourtest.model.Destination
-import com.example.tourtest.model.Itinerary
+import com.example.tourtest.model.ItineraryWithDestination
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class ItineraryWithDestination(
-    val itinerary: Itinerary,
-    val destination: Destination
-)
 
 class ItineraryViewModel(
     application: Application,
@@ -24,13 +23,39 @@ class ItineraryViewModel(
     private val homepageManager: HomepageManager
 ) : AndroidViewModel(application) {
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    private val _allItineraryList = MutableStateFlow<List<ItineraryWithDestination>>(emptyList())
+    val groupedItinerary: StateFlow<Map<String, List<ItineraryWithDestination>>> = combine(
+        _allItineraryList,
+        _searchQuery
+    ) { list, query ->
+        val filtered = if (query.isBlank()) {
+            list
+        } else {
+            list.filter {
+                it.destination.name.contains(query, ignoreCase = true) ||
+                        it.destination.location.contains(query, ignoreCase = true)
+            }
+        }
+        filtered.groupBy { it.itinerary.date }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyMap()
+    )
     private val context = getApplication<Application>().applicationContext
-    private val _groupedItinerary = MutableStateFlow<Map<String, List<ItineraryWithDestination>>>(emptyMap())
-    val groupedItinerary: StateFlow<Map<String, List<ItineraryWithDestination>>> = _groupedItinerary.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
     fun loadItineraries() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -50,8 +75,7 @@ class ItineraryViewModel(
                     }
                 }
 
-                val grouped = withDestinations.groupBy { it.itinerary.date }
-                _groupedItinerary.value = grouped
+                _allItineraryList.value = withDestinations
 
             } catch (e: Exception) {
                 _error.value = e.message
@@ -65,14 +89,7 @@ class ItineraryViewModel(
         viewModelScope.launch {
             val success = itineraryManager.removeDestination(context, itineraryId)
             if (success) {
-                val currentGroup = _groupedItinerary.value.toMutableMap()
-                val updatedList = currentGroup[date]?.filter { it.itinerary.id != itineraryId } ?: emptyList()
-                if (updatedList.isEmpty()) {
-                    currentGroup.remove(date)
-                } else {
-                    currentGroup[date] = updatedList
-                }
-                _groupedItinerary.value = currentGroup
+                _allItineraryList.value = _allItineraryList.value.filter { it.itinerary.id != itineraryId }
             }
         }
     }
