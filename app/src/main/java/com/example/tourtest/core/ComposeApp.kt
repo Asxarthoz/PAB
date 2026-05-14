@@ -1,15 +1,10 @@
 package com.example.tourtest.core
 
 import android.app.Application
-import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
@@ -21,10 +16,8 @@ import com.example.tourtest.ui.theme.TourizmeTheme
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.tourtest.core.components.TourizmeBottombar
-import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.auth.presentation.AuthScreen
-import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
 import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 import com.example.tourtest.feature.homepage.presentation.HomepageScreen
@@ -42,6 +35,7 @@ import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.itinerary.presentation.ItineraryScreen
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
+import com.example.tourtest.feature.notification.presentation.NotificationScreen
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import kotlin.collections.contains
 
@@ -105,22 +99,29 @@ fun ComposeApp() {
                 composable("home") {
                     HomepageScreen(
                         viewModel = homepageViewModel,
-                        onNavigateToDetail = { id -> navController.navigate("detail/$id") }
+                        onNavigateToDetail = { id -> navController.navigate("detail/$id") },
+                        onNavigateToNotification = { navController.navigate("notification") }
                     )
                 }
 
                 composable("favorite") {
                     FavoriteScreen (
                         viewModel = favoriteViewModel,
-                        onNavigateToDetail = { id -> navController.navigate("detail/$id") }
+                        onNavigateToDetail = { id -> navController.navigate("detail/$id") },
+                        onNavigateToNotification = { navController.navigate("notification") }
                     )
                 }
 
                 composable("itinerary") {
                     ItineraryScreen(
                         viewModel = itineraryViewModel,
-                        onNavigateToDetail = { id -> navController.navigate("detail/$id") }
+                        onNavigateToDetail = { id -> navController.navigate("detail/$id") },
+                        onNavigateToNotification = { navController.navigate("notification") }
                     )
+                }
+
+                composable("notification") {
+                    NotificationScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable("profile") {
@@ -158,7 +159,8 @@ fun ComposeApp() {
                     DestinationDetailScreen(
                         destinationId = destinationId,
                         viewModel = viewModel,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onNavigateToNotification = { navController.navigate("notification") }
                     )
                 }
 
