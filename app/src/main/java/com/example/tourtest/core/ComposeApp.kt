@@ -4,17 +4,21 @@ import android.app.Application
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import com.example.tourtest.ui.theme.TourizmeTheme
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import com.example.tourtest.core.components.TourizmeBottombar
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.auth.presentation.AuthScreen
@@ -37,16 +41,14 @@ import com.example.tourtest.feature.itinerary.presentation.ItineraryScreen
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
 import com.example.tourtest.feature.notification.presentation.NotificationScreen
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
-import kotlin.collections.contains
+import com.example.tourtest.ui.theme.TourizmeTheme
 
 @Composable
 fun ComposeApp() {
     val context = LocalContext.current
-    val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
     val application = context.applicationContext as Application
-    val currentRoute = navBackStackEntry?.destination?.route
-
+    val backStack = rememberNavBackStack(Routes.AuthRoute)
+    var currentRoute by remember { mutableStateOf<Any?>(null) }
     val homepageViewModel: HomepageViewModel = viewModel {
         HomepageViewModel(
             getAllDestinations = { HomepageManager.readDestinationsFromData(context) }
@@ -75,124 +77,151 @@ fun ComposeApp() {
         )
     }
 
+    val currentScreen = backStack.lastOrNull()
+
     TourizmeTheme {
-        Scaffold(
-            bottomBar = {
-                val mainRoutes = listOf("home", "itinerary", "favorite", "profile")
-                if (currentRoute in mainRoutes) {
-                    TourizmeBottombar(navController, currentRoute)
+        CompositionLocalProvider(LocalBackStack provides backStack) {
+            Scaffold(
+                bottomBar = {
+                    val mainRoutes = listOf(
+                        Routes.HomeRoute,
+                        Routes.ItineraryRoute,
+                        Routes.FavoriteRoute,
+                        Routes.ProfileRoute
+                    )
+                    if (currentScreen in mainRoutes) {
+                        TourizmeBottombar(
+                            currentRoute = currentScreen
+                        )
+                    }
                 }
-            }
-        ) { innerPadding ->
-            NavHost(
-                navController = navController,
-                startDestination = "auth",
-                modifier = Modifier.padding(innerPadding)
-            ) {
-                composable("auth") {
-                    AuthScreen(onLoginSuccess = {
-                        navController.navigate("home") {
-                            popUpTo("auth") { inclusive = true }
+            ) { innerPadding ->
+                NavDisplay(
+                    backStack = backStack,
+                    modifier = Modifier.padding(innerPadding),
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator()
+                    ),
+                    entryProvider = entryProvider {
+                        entry<Routes.AuthRoute> {
+                            AuthScreen(
+                                onLoginSuccess = {
+                                    backStack.clear()
+                                    backStack.add(Routes.HomeRoute)
+                                }
+                            )
                         }
-                    })
-                }
-                composable("home") {
-                    HomepageScreen(
-                        viewModel = homepageViewModel,
-                        onNavigateToDetail = { id -> navController.navigate("detail/$id") },
-                        onNavigateToNotification = { navController.navigate("notification") }
-                    )
-                }
 
-                composable("favorite") {
-                    FavoriteScreen (
-                        viewModel = favoriteViewModel,
-                        onNavigateToDetail = { id -> navController.navigate("detail/$id") },
-                        onNavigateToNotification = { navController.navigate("notification") }
-                    )
-                }
-
-                composable("itinerary") {
-                    ItineraryScreen(
-                        viewModel = itineraryViewModel,
-                        onNavigateToDetail = { id -> navController.navigate("detail/$id") },
-                        onNavigateToNotification = { navController.navigate("notification") }
-                    )
-                }
-
-                composable("notification") {
-                    NotificationScreen(onBack = { navController.popBackStack() })
-                }
-
-                composable("profile") {
-                    ProfileScreen(
-                        viewModel = profileViewModel,
-                        onLogout = {
-                            navController.navigate("auth") {
-                                popUpTo(0) // Bersihkan semua backstack
-                            }
-                        },
-                        onNavigateToEditProfile = { navController.navigate("edit_profile") },
-                        onNavigateToChangePassword = { navController.navigate("change_password") },
-                        onNavigateToFullScreenImage = { navController.navigate("full_image") }
-                    )
-                }
-
-                composable("detail/{destinationId}") { backStackEntry ->
-                    val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
-                    val currentUserId = AuthManager.getCurrentUserId() ?: ""
-                    val viewModel: DetailViewModel = viewModel(
-                        factory = object : ViewModelProvider.Factory {
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                return DetailViewModel(
-                                    application = application,
-                                    destinationId = destinationId,
-                                    currentUserId = currentUserId,
-                                    homepageManager = HomepageManager,
-                                    favoriteManager = FavoriteManager,
-                                    itineraryManager = ItineraryManager
-                                ) as T
-                            }
+                        entry<Routes.HomeRoute> {
+                            HomepageScreen(
+                                viewModel = homepageViewModel,
+                                onNavigateToDetail = { id ->
+                                    backStack.add(Routes.DetailRoute(destinationId = id))
+                                },
+                                onNavigateToNotification = {
+                                    backStack.add(Routes.NotificationRoute)
+                                }
+                            )
                         }
-                    )
 
-                    DestinationDetailScreen(
-                        destinationId = destinationId,
-                        viewModel = viewModel,
-                        onBack = { navController.popBackStack() },
-                        onNavigateToNotification = { navController.navigate("notification") }
-                    )
-                }
+                        entry<Routes.FavoriteRoute> {
+                            FavoriteScreen(
+                                viewModel = favoriteViewModel,
+                                onNavigateToDetail = { id ->
+                                    backStack.add(Routes.DetailRoute(destinationId = id))
+                                },
+                                onNavigateToNotification = {
+                                    backStack.add(Routes.NotificationRoute)
+                                }
+                            )
+                        }
 
-                composable("full_image") { // Disamakan routenya
-                    FullScreenImageScreen(
-                        onBack = { navController.popBackStack() },
-                        imageBitmap = null
-                    )
-                }
+                        entry<Routes.ItineraryRoute> {
+                            ItineraryScreen(
+                                viewModel = itineraryViewModel,
+                                onNavigateToDetail = { id ->
+                                    backStack.add(Routes.DetailRoute(destinationId = id))
+                                },
+                                onNavigateToNotification = {
+                                    backStack.add(Routes.NotificationRoute)
+                                }
+                            )
+                        }
 
-                composable("edit_profile") {
-                    val context = LocalContext.current
-                    val profileManager = ProfileManager(context)
-                    EditProfileScreen(
-                        onBack = { navController.popBackStack() },
-                        profileManager = profileManager
-                    )
-                }
-                composable("change_password") {
-                    val context = LocalContext.current
-                    val passwordManager = PasswordManager(context)
-                    ChangePasswordScreen(
-                        onBack = { navController.popBackStack() },
-                        passwordManager = passwordManager
-                    )
-                }
-                composable(("fullscrenn_image")) {
-                    FullScreenImageScreen(
-                        onBack = { navController.popBackStack() },
-                        imageBitmap = null
-                    )
-                }
+                        entry<Routes.NotificationRoute> {
+                            NotificationScreen(
+                                onBack = { backStack.removeLastOrNull() }
+                            )
+                        }
+
+                        entry<Routes.ProfileRoute> {
+                            ProfileScreen(
+                                viewModel = profileViewModel,
+                                onLogout = {
+                                    backStack.clear()
+                                    backStack.add(Routes.AuthRoute)
+                                },
+                                onNavigateToEditProfile = {
+                                    backStack.add(Routes.EditProfileRoute)
+                                },
+                                onNavigateToChangePassword = {
+                                    backStack.add(Routes.ChangePasswordRoute)
+                                },
+                                onNavigateToFullScreenImage = {
+                                    backStack.add(Routes.FullScreenImageRoute)
+                                }
+                            )
+                        }
+
+                        entry<Routes.DetailRoute> { route ->
+                            val destinationId = route.destinationId
+                            val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                            val detailViewModel: DetailViewModel = viewModel(
+                                factory = object : ViewModelProvider.Factory {
+                                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                                        return DetailViewModel(
+                                            application = application,
+                                            destinationId = destinationId,
+                                            currentUserId = currentUserId,
+                                            homepageManager = HomepageManager,
+                                            favoriteManager = FavoriteManager,
+                                            itineraryManager = ItineraryManager
+                                        ) as T
+                                    }
+                                }
+                            )
+
+                            DestinationDetailScreen(
+                                viewModel = detailViewModel,
+                                onBack = { backStack.removeLastOrNull() }
+                            )
+                        }
+
+                        entry<Routes.FullScreenImageRoute> {
+                            FullScreenImageScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                imageBitmap = null
+                            )
+                        }
+
+                        entry<Routes.EditProfileRoute> {
+                            val profileManager = ProfileManager(context)
+                            EditProfileScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                profileManager = profileManager
+                            )
+                        }
+
+                        entry<Routes.ChangePasswordRoute> {
+                            val passwordManager = PasswordManager(context)
+                            ChangePasswordScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                passwordManager = passwordManager
+                            )
+                        }
+                    }
+                )
             }
         }
     }

@@ -1,7 +1,7 @@
+// core/Routes.kt
 package com.example.tourtest.core
 
 import androidx.navigation3.runtime.NavKey
-import com.example.tourtest.model.Destination
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -13,7 +13,16 @@ object Routes {
     data object HomeRoute : NavKey
 
     @Serializable
+    data object FavoriteRoute : NavKey
+
+    @Serializable
+    data object ItineraryRoute : NavKey
+
+    @Serializable
     data object ProfileRoute : NavKey
+
+    @Serializable
+    data object NotificationRoute : NavKey
 
     @Serializable
     data object EditProfileRoute : NavKey
@@ -26,10 +35,4 @@ object Routes {
 
     @Serializable
     data class DetailRoute(val destinationId: String) : NavKey
-
-    @Serializable
-    data object  WishlistRoute : NavKey
-
-    @Serializable
-    data object ItineraryRoute : NavKey
 }

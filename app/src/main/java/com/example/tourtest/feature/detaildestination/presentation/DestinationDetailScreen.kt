@@ -34,13 +34,11 @@ import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 @Composable
 fun DestinationDetailScreen(
     viewModel: DetailViewModel,
-    destinationId: String,
-    onBack: () -> Unit,
-    onNavigateToNotification: () -> Unit
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
-
-    val destination by viewModel.destination.collectAsStateWithLifecycle()
+    val destinationState by viewModel.destination.collectAsStateWithLifecycle()
+    val destination = destinationState
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
     val isItineraried by viewModel.isPlanned.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -49,17 +47,25 @@ fun DestinationDetailScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
     val scrollState = rememberScrollState()
-
     val openMaps = {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(destination?.gmapUrl))
-        context.startActivity(intent)
+        try {
+            val gmapUrl = destination?.gmapUrl
+            if (!gmapUrl.isNullOrBlank()) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(gmapUrl))
+                context.startActivity(intent)
+            } else {
+                Toast.makeText(context, "URL lokasi tidak tersedia", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Tidak dapat membuka peta", Toast.LENGTH_SHORT).show()
+        }
     }
 
     TourizmeDeleteDialog(
         show = showDeleteDialog,
         message = "Yakin ingin menghapus destinasi ini dari favorit?",
         onConfirm = {
-            viewModel.toggleFavorite() // Logika hapus di ViewModel
+            viewModel.toggleFavorite()
             showDeleteDialog = false
             Toast.makeText(context, "Dihapus dari favorit", Toast.LENGTH_SHORT).show()
         },
@@ -128,14 +134,13 @@ fun DestinationDetailScreen(
                         .fillMaxSize()
                         .padding(paddingValues)
                         .verticalScroll(scrollState)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
                     AsyncImage(
-                        model = destination?.imageUrl,
-                        contentDescription = destination?.name,
+                        model = destination.imageUrl,
+                        contentDescription = destination.name,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
@@ -178,13 +183,13 @@ fun DestinationDetailScreen(
                     }
 
                     Text(
-                        text = destination!!.name,
+                        text = destination.name,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Mulai dari Rp ${destination!!.price}",
+                        text = "Mulai dari Rp ${destination.price}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -201,7 +206,7 @@ fun DestinationDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = destination!!.location,
+                            text = destination.location,
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
@@ -213,7 +218,7 @@ fun DestinationDetailScreen(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                     Text(
-                        text = destination!!.description,
+                        text = destination.description,
                         textAlign = TextAlign.Justify,
                         lineHeight = 22.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

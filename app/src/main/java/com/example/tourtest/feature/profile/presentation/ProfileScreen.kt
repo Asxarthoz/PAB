@@ -53,10 +53,6 @@ fun ProfileScreen(
     val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
-    val profileManager = remember { ProfileManager(context) }
-
-    val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
-
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {

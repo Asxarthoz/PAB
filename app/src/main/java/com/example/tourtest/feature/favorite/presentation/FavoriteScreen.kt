@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -68,7 +69,7 @@ fun FavoriteContent(
                 .padding(paddingValues)
         ) {
             if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxSize())
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
             else if (favoriteDestinations.isEmpty()) {
                 TourizmeEmptyState("Tidak ada destinasi ditemukan", "Coba dengan kata kunci lain!")
@@ -106,15 +107,11 @@ fun FavoriteScreen(
 ) {
     val context = LocalContext.current
     val currentUserId = AuthManager.getCurrentUserId()?: ""
-
     val favoriteDestinations by viewModel.favoriteDestinations.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
-
-    // State Alert
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
@@ -193,14 +190,12 @@ fun FavoriteScreen(
 fun FavoritePreview(
     @PreviewParameter(DestinationProvider::class) destinations: List<Destination>
 ) {
-    // Pastikan pakai Theme aplikasi kamu agar warna dan font sesuai
     TourizmeTheme {
         FavoriteContent(
             searchQuery = "",
             favoriteDestinations = destinations,
-            // Kita anggap semua id di list ini adalah favorit agar ikon hati menyala
             favoriteIds = destinations.map { it.id }.toSet(),
-            itinerariedIds = setOf("1"), // Contoh satu destinasi sudah ada di rencana
+            itinerariedIds = setOf("1"),
             isLoading = false,
             listState = rememberLazyListState(),
             onSearchQueryChange = {},
