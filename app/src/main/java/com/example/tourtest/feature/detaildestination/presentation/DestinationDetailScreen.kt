@@ -35,7 +35,8 @@ import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 fun DestinationDetailScreen(
     viewModel: DetailViewModel,
     destinationId: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToNotification: () -> Unit
 ) {
     val context = LocalContext.current
 
