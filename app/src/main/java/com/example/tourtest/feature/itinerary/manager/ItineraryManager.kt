@@ -21,11 +21,9 @@ object ItineraryManager {
             }
 
             if (existingIndex != -1) {
-                // FITUR EDIT: Perbarui tanggal jika sudah ada
                 val existingItem = allItinerary[existingIndex]
                 allItinerary[existingIndex] = existingItem.copy(date = date)
             } else {
-                // FITUR TAMBAH: Buat entri baru jika belum ada
                 allItinerary.add(
                     Itinerary(
                         id = UUID.randomUUID().toString(),
