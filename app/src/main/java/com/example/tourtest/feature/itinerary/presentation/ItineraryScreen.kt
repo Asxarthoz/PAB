@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.DestinationCard
@@ -38,17 +40,114 @@ import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
+import com.example.tourtest.model.Destination
+import com.example.tourtest.model.ItineraryWithDestination
+import kotlin.collections.component1
+import kotlin.collections.component2
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ItineraryContent(
+    searchQuery: String,
+    groupedItinerary: Map<String, List<ItineraryWithDestination>>,
+    favoriteIds: Set<String>,
+    isLoading: Boolean,
+    error: String?,
+    listState: LazyListState,
+    onSearchQueryChange: (String) -> Unit,
+    onNotificationClick: () -> Unit,
+    onNavigateToDetail: (String) -> Unit,
+    onWishListClick: (Destination) -> Unit,
+    onClick: (Destination) -> Unit,
+    onDeleteItineraryClick: (ItineraryWithDestination) -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TourizmeSimpleHeader(
+                title = "Rencana Perjalanan",
+                searchQuery = searchQuery,
+                onSearchQueryChange = onSearchQueryChange,
+                onNotificationClick = onNotificationClick
+            )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            when {
+                isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                error != null -> {
+                    Text(
+                        "Error: $error",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                groupedItinerary.isEmpty() -> {
+                    TourizmeEmptyState("Tidak ada destinasi ditemukan", null)
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = listState,
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        groupedItinerary.forEach { (date, items) ->
+
+                            item {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(
+                                        text = "Tanggal: $date",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            items(items) { item ->
+                                Column {
+                                    DestinationCard(
+                                        destination = item.destination,
+                                        isWishlisted = favoriteIds.contains(item.destination.id),
+                                        isItineraried = true,
+                                        onWishListClick = { onWishListClick(item.destination) },
+                                        onItineraryClick = { },
+                                        onClick = { onNavigateToDetail(item.destination.id) }
+                                    )
+
+                                    TextButton(
+                                        onClick = { onDeleteItineraryClick(item) },
+                                        modifier = Modifier.align(Alignment.End)
+                                    ) {
+                                        Text("Hapus Rencana", color = MaterialTheme.colorScheme.error)
+                                    }
+                                    HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItineraryScreen(
     viewModel: ItineraryViewModel,
-    onNavigateToDetail: (String) -> Unit
+    onNavigateToDetail: (String) -> Unit,
+    onNavigateToNotification: () -> Unit
 ) {
     val context = LocalContext.current
-    val allDestinations = remember { HomepageManager.readDestinationsFromData(context) }
     val currentUserId = AuthManager.getCurrentUserId()?: ""
 
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val groupedItinerary by viewModel.groupedItinerary.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -59,7 +158,7 @@ fun ItineraryScreen(
     // State Alert
     var showDeleteItineraryDialog by remember { mutableStateOf(false) }
     var selectedItineraryId by remember { mutableStateOf<String?>(null) }
-
+    var selectedItinerary by remember { mutableStateOf<ItineraryWithDestination?>(null) }
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
@@ -111,135 +210,56 @@ fun ItineraryScreen(
         onDismiss = { showDeleteFavoriteDialog = false }
     )
 
-    Scaffold(
-        topBar = {
-            TourizmeSimpleHeader("Rencana Perjalanan")
-        }
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                error != null -> {
-                    Text(
-                        "Error: $error",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                groupedItinerary.isEmpty() -> {
-                    TourizmeEmptyState("Tidak ada destinasi ditemukan", null)
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        state = listState,
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        groupedItinerary.forEach { (date, items) ->
-                            items(items) { itineraryItem ->
-                                val destination =
-                                    allDestinations.find { it.id == itineraryItem.destination.id }
-
-                                if (destination != null) {
-                                    Column {
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.secondaryContainer,
-                                            shape = MaterialTheme.shapes.small,
-                                            modifier = Modifier.padding(bottom = 8.dp)
-                                        ) {
-                                            Text(
-                                                text = "Tanggal: $date",
-                                                modifier = Modifier.padding(
-                                                    horizontal = 8.dp,
-                                                    vertical = 4.dp
-                                                ),
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-
-                                        val isFavorite = favoriteIds.contains(destination.id)
-                                        DestinationCard(
-                                            destination = destination,
-                                            isWishlisted = isFavorite,
-                                            isItineraried = true,
-                                            onWishListClick = {
-                                                if (currentUserId.isBlank()) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "Gagal: User ID tidak ditemukan!",
-                                                        android.widget.Toast.LENGTH_SHORT
-                                                    ).show()
-                                                } else {
-                                                    if (isFavorite) {
-                                                        selectedDestinationId = destination.id
-                                                        showDeleteFavoriteDialog = true
-                                                    } else {
-                                                        val success =
-                                                            FavoriteManager.addDestination(
-                                                                context,
-                                                                currentUserId,
-                                                                destination.id
-                                                            )
-                                                        if (success) {
-                                                            favoriteIds =
-                                                                favoriteIds + destination.id
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Berhasil disimpan ke daftar favorit",
-                                                                android.widget.Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        } else {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Gagal disimpan ke daftar favorit",
-                                                                android.widget.Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            onItineraryClick = { selectedDate ->
-                                            if (currentUserId.isBlank()) {
-                                                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
-                                                if (success) {
-                                                    viewModel.loadItineraries()
-                                                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    Toast.makeText(context, "Gagal disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                            },
-                                            onClick = { onNavigateToDetail(destination.id) }
-                                        )
-
-                                        TextButton(
-                                            onClick = {
-                                                selectedItineraryId = itineraryItem.destination.id
-                                                showDeleteItineraryDialog = true
-                                            },
-                                            modifier = Modifier.align(Alignment.End)
-                                        ) {
-                                            Text(
-                                                "Hapus Rencana",
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-                                    }
-                                }
-                            }
-
-
-                        }
-                    }
+    ItineraryContent(
+        searchQuery = searchQuery,
+        groupedItinerary = groupedItinerary,
+        favoriteIds = favoriteIds,
+        isLoading = isLoading,
+        error = error,
+        listState = rememberLazyListState(),
+        onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+        onNotificationClick = onNavigateToNotification,
+        onNavigateToDetail = onNavigateToDetail,
+        onWishListClick = { destination ->
+            if (currentUserId.isBlank()) {
+                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                if (favoriteIds.contains(destination.id)) {
+                    selectedDestinationId = destination.id
+                    showDeleteFavoriteDialog = true
+                } else {
+//                    viewModel.addToFavorite(destination.id)
+                    FavoriteManager.addDestination(context, currentUserId, destination.id)
+                    favoriteIds = favoriteIds + destination.id
+                    Toast.makeText(context, "Disimpan ke favorit", Toast.LENGTH_SHORT).show()
                 }
             }
+        },
+        onClick = { destination -> onNavigateToDetail(destination.id) },
+        onDeleteItineraryClick = { item ->
+            selectedItinerary = item
+            showDeleteItineraryDialog = true
         }
+    )
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun ItineraryPreview() {
+    MaterialTheme {
+        ItineraryContent(
+            searchQuery = "",
+            groupedItinerary = emptyMap(),
+            favoriteIds = setOf(),
+            isLoading = false,
+            error = null,
+            listState = rememberLazyListState(),
+            onSearchQueryChange = {},
+            onNotificationClick = {},
+            onNavigateToDetail = {},
+            onWishListClick = {},
+            onClick = {},
+            onDeleteItineraryClick = {}
+        )
     }
 }
