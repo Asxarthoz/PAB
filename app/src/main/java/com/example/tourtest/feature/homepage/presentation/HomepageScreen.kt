@@ -1,157 +1,123 @@
 package com.example.tourtest.feature.homepage.presentation
 
 import android.widget.Toast
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.clickable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import com.example.tourtest.R
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.feature.auth.manager.AuthManager
-import com.example.tourtest.model.Destination
-import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
-import okhttp3.internal.format
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.example.tourtest.model.Destination
+import com.example.tourtest.provider.homepage.DestinationProvider
+import com.example.tourtest.ui.theme.TourizmeTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun HomepageScreen(
-    viewModel: HomepageViewModel,
-    onNavigateToDetail: (String) -> Unit
+fun HomepageContent(
+    greeting: String,
+    userName: String,
+    searchQuery: String,
+    isSearchActive: Boolean,
+    listState: LazyListState,
+//    currentUserId: String,
+    filteredDestinations: List<Destination>,
+    favoriteIds: Set<String>,
+    itinerariedIds: Set<String>,
+    onSearchQueryChange: (String) -> Unit,
+    onClearSearch: () -> Unit,
+    onNavigateToDetail: (String) -> Unit,
+    onNavigateToNotification: () -> Unit,
+    onWishListClick: (Destination) -> Unit,
+    onItineraryClick: (Destination, String) -> Unit,
+    onClick: (Destination) -> Unit,
 ) {
-    val context = LocalContext.current
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
-
-    var favoriteIds by remember { mutableStateOf(setOf<String>()) }
-    var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
-
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
-
-    val filteredDestinations by viewModel.filteredDestinations.collectAsStateWithLifecycle()
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-
-    var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
-    var selectedDestinationId by remember { mutableStateOf<String?>(null) }
-
-    fun refreshStatus() {
-        favoriteIds = FavoriteManager.getAllFavorite(context)
-            .filter { it.userId == currentUserId }
-            .map { it.destinationId }.toSet()
-
-        itinerariedIds = ItineraryManager.getAllItinerary(context)
-            .filter { it.userId == currentUserId }
-            .map { it.destinationId }.toSet()
-    }
-
-    LaunchedEffect(currentUserId) {
-         refreshStatus()
-    }
-
-    val listState = rememberLazyListState()
-
-    TourizmeDeleteDialog(
-        show = showDeleteFavoriteDialog,
-        message =  "Yakin hapus destinasi dari daftar favorit?",
-        onConfirm = {
-            selectedDestinationId?.let { id ->
-                val succes = FavoriteManager.removeDestination(context, currentUserId, id)
-                if (succes) {
-                    favoriteIds = favoriteIds - id
-                    Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-            showDeleteFavoriteDialog = false
-            selectedDestinationId = null
-        },
-        onDismiss = {
-            showDeleteFavoriteDialog = false
-            selectedDestinationId = null
-        }
-    )
-
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    if (isSearchActive) {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = {
-//                                searchQuery = it
-                                viewModel.updateSearchQuery(it) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Cari destinasi...") },
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            leadingIcon = {
-                                Icon(Icons.Default.Search, contentDescription = null)
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = {
-//                                        searchQuery = ""
-                                        viewModel.clearSearch() }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Hapus")
-                                    }
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shadowElevation = 4.dp
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row {
+                            Text(
+                                text = "$greeting, ",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+
+                            Text(
+                                text = userName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+
+                        IconButton(onClick = onNavigateToNotification) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifikasi",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(0.dp))
+
+                    TextField(
+                        value = searchQuery,
+                        onValueChange =  onSearchQueryChange ,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp).heightIn(min = 44.dp),
+                        placeholder = { Text("Mau liburan ke mana nih?") },
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick =  onClearSearch ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Hapus")
                                 }
                             }
-                        )
-                    } else {
-                        Text("Tourizme", fontWeight = FontWeight.Bold)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        isSearchActive = !isSearchActive
-                        if (!isSearchActive) {
-//                            searchQuery = ""
-                            viewModel.clearSearch()
                         }
-                        viewModel.toggleSearchActive()
-                    }) {
-                        Icon(
-                            if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                            contentDescription = if (isSearchActive) "Tutup pencarian" else "Cari"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            )
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -189,9 +155,7 @@ fun HomepageScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (searchQuery.isNotBlank()) {
-                        TextButton(onClick = {
-//                            searchQuery = ""
-                            viewModel.clearSearch() })
+                        TextButton(onClick = { onClearSearch })
                         {
                             Text("Reset")
                         }
@@ -214,38 +178,9 @@ fun HomepageScreen(
                             destination = destination,
                             isWishlisted = isFavorite,
                             isItineraried = isItineraried,
-                            onWishListClick = {
-                                if (currentUserId.isBlank()) {
-                                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-                                } else {
-                                    if (isFavorite) {
-                                        selectedDestinationId = destination.id
-                                        showDeleteFavoriteDialog = true
-                                    } else {
-                                        val success = FavoriteManager.addDestination(context, currentUserId, destination.id)
-                                        if (success) {
-                                            favoriteIds = favoriteIds + destination.id
-                                            Toast.makeText(context, "Berhasil disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            Toast.makeText(context, "Gagal disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                }
-                            },
-                            onItineraryClick = { selectedDate ->
-                                if (currentUserId.isBlank()) {
-                                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-                                } else {
-                                    val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
-                                    if (success) {
-                                        itinerariedIds = itinerariedIds + destination.id
-                                        Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "Gagal disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            },
-                            onClick = {onNavigateToDetail(destination.id)}
+                            onWishListClick = { onWishListClick(destination) },
+                            onItineraryClick = { date -> onItineraryClick(destination, date) },
+                            onClick = { onNavigateToDetail(destination.id) }
                         )
                     }
                 }
@@ -254,3 +189,136 @@ fun HomepageScreen(
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomepageScreen(
+    viewModel: HomepageViewModel,
+    onNavigateToDetail: (String) -> Unit,
+    onNavigateToNotification: () -> Unit
+) {
+    val context = LocalContext.current
+    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val listState = rememberLazyListState()
+
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val filteredDestinations by viewModel.filteredDestinations.collectAsStateWithLifecycle()
+    val isSearchActive by viewModel.isSearchActive.collectAsStateWithLifecycle() // Pakai yang ini
+//    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+
+    val greeting = remember { viewModel.getGreeting() }
+    val userName = remember { AuthManager.getUserById(context, currentUserId)?.nickName ?: "Traveler" }
+
+    var favoriteIds by remember { mutableStateOf(setOf<String>()) }
+    var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
+    var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
+    var selectedDestinationId by remember { mutableStateOf<String?>(null) }
+
+    fun refreshStatus() {
+        favoriteIds = FavoriteManager.getAllFavorite(context)
+            .filter { it.userId == currentUserId }
+            .map { it.destinationId }.toSet()
+
+        itinerariedIds = ItineraryManager.getAllItinerary(context)
+            .filter { it.userId == currentUserId }
+            .map { it.destinationId }.toSet()
+    }
+
+    LaunchedEffect(currentUserId) {
+         refreshStatus()
+    }
+
+    TourizmeDeleteDialog(
+        show = showDeleteFavoriteDialog,
+        message =  "Yakin hapus destinasi dari daftar favorit?",
+        onConfirm = {
+            selectedDestinationId?.let { id ->
+                val succes = FavoriteManager.removeDestination(context, currentUserId, id)
+                if (succes) {
+                    favoriteIds = favoriteIds - id
+                    Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            showDeleteFavoriteDialog = false
+            selectedDestinationId = null
+        },
+        onDismiss = {
+            showDeleteFavoriteDialog = false
+            selectedDestinationId = null
+        }
+    )
+
+    HomepageContent(
+        greeting = greeting,
+        userName = userName,
+        searchQuery = searchQuery,
+        isSearchActive = isSearchActive,
+        listState = listState,
+//        currentUserId = currentUserId,
+        filteredDestinations = filteredDestinations,
+        favoriteIds = favoriteIds,
+        itinerariedIds = itinerariedIds,
+        onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+        onClearSearch = { viewModel.clearSearch() },
+        onNavigateToDetail = onNavigateToDetail,
+        onNavigateToNotification = onNavigateToNotification,
+        onWishListClick = { destination ->
+            if (currentUserId.isBlank()) {
+                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                if (favoriteIds.contains(destination.id)) {
+                    selectedDestinationId = destination.id
+                    showDeleteFavoriteDialog = true
+                } else {
+                    val success = FavoriteManager.addDestination(context, currentUserId, destination.id)
+                    if (success) {
+                        favoriteIds = favoriteIds + destination.id
+                        Toast.makeText(context, "Berhasil disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Gagal disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        },
+        onItineraryClick = { destination, selectedDate ->
+            if (currentUserId.isBlank()) {
+                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
+                if (success) {
+                    itinerariedIds = itinerariedIds + destination.id
+                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Gagal disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        },
+        onClick = { destination -> onNavigateToDetail(destination.id) }
+
+    )
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun HomepagePreview(@PreviewParameter(DestinationProvider::class) destinations: List<Destination>) {
+    TourizmeTheme {
+        HomepageContent(
+            greeting = "Selamat Pagi",
+            userName = "Tian",
+            searchQuery = "",
+            isSearchActive = false,
+            listState = rememberLazyListState(),
+//            currentUserId = "123",
+            filteredDestinations = destinations,
+            favoriteIds = setOf(),
+            itinerariedIds = setOf(),
+            onSearchQueryChange = {},
+            onClearSearch = {},
+            onNavigateToDetail = {},
+            onNavigateToNotification = {},
+            onWishListClick = {},
+            onItineraryClick = { _, _ -> },
+            onClick = {}
+        )
+    }
+}
