@@ -1,4 +1,3 @@
-// feature/itinerary/presentation/ItineraryScreen.kt
 package com.example.tourtest.feature.itinerary.presentation
 
 import android.widget.Toast
@@ -152,13 +151,9 @@ fun ItineraryScreen(
 
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
-
-    // State untuk dialog hapus itinerary
     var showDeleteItineraryDialog by remember { mutableStateOf(false) }
     var selectedItineraryId by remember { mutableStateOf<String?>(null) }
     var selectedDate by remember { mutableStateOf<String?>(null) }
-
-    // State untuk dialog hapus favorite
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
@@ -179,7 +174,6 @@ fun ItineraryScreen(
 
     val listState = rememberLazyListState()
 
-    // Dialog hapus itinerary
     TourizmeDeleteDialog(
         show = showDeleteItineraryDialog,
         message = "Yakin hapus destinasi dari daftar rencana?",
@@ -200,7 +194,6 @@ fun ItineraryScreen(
         }
     )
 
-    // Dialog hapus favorite
     TourizmeDeleteDialog(
         show = showDeleteFavoriteDialog,
         message = "Hapus dari daftar favorit?",
