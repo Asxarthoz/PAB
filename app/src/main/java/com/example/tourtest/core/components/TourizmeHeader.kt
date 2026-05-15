@@ -39,7 +39,6 @@ public fun TourizmeSimpleHeader(
 
     TopAppBar(
         title = {
-//            Text(text = title, fontWeight = FontWeight.Bold)
             if (isSearchActive) {
                 TextField(
                     value = searchQuery,
