@@ -1,13 +1,13 @@
+// feature/itinerary/presentation/ItineraryScreen.kt
 package com.example.tourtest.feature.itinerary.presentation
+
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,20 +30,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Column
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
-import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
 import com.example.tourtest.model.Destination
 import com.example.tourtest.model.ItineraryWithDestination
-import kotlin.collections.component1
-import kotlin.collections.component2
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +52,7 @@ fun ItineraryContent(
     favoriteIds: Set<String>,
     isLoading: Boolean,
     error: String?,
-    listState: LazyListState,
+    listState: androidx.compose.foundation.lazy.LazyListState,
     onSearchQueryChange: (String) -> Unit,
     onNotificationClick: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
@@ -78,13 +77,13 @@ fun ItineraryContent(
                 }
                 error != null -> {
                     Text(
-                        "Error: $error",
+                        text = "Error: $error",
                         modifier = Modifier.align(Alignment.Center),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
                 groupedItinerary.isEmpty() -> {
-                    TourizmeEmptyState("Tidak ada destinasi ditemukan", null)
+                    TourizmeEmptyState("Tidak ada rencana perjalanan", null)
                 }
                 else -> {
                     LazyColumn(
@@ -94,7 +93,6 @@ fun ItineraryContent(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         groupedItinerary.forEach { (date, items) ->
-
                             item {
                                 Surface(
                                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -145,7 +143,7 @@ fun ItineraryScreen(
     onNavigateToNotification: () -> Unit
 ) {
     val context = LocalContext.current
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val currentUserId = AuthManager.getCurrentUserId() ?: ""
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val groupedItinerary by viewModel.groupedItinerary.collectAsStateWithLifecycle()
@@ -155,10 +153,12 @@ fun ItineraryScreen(
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
 
-    // State Alert
+    // State untuk dialog hapus itinerary
     var showDeleteItineraryDialog by remember { mutableStateOf(false) }
     var selectedItineraryId by remember { mutableStateOf<String?>(null) }
-    var selectedItinerary by remember { mutableStateOf<ItineraryWithDestination?>(null) }
+    var selectedDate by remember { mutableStateOf<String?>(null) }
+
+    // State untuk dialog hapus favorite
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
 
@@ -179,23 +179,28 @@ fun ItineraryScreen(
 
     val listState = rememberLazyListState()
 
+    // Dialog hapus itinerary
     TourizmeDeleteDialog(
         show = showDeleteItineraryDialog,
         message = "Yakin hapus destinasi dari daftar rencana?",
         onConfirm = {
             selectedItineraryId?.let { id ->
-                viewModel.loadItineraries()
+                viewModel.removeFromItinerary(id, selectedDate ?: "")
                 refreshStatus()
-                Toast.makeText(context, "Berhasil dihapus dari rencana", android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Berhasil dihapus dari rencana", Toast.LENGTH_SHORT).show()
             }
             showDeleteItineraryDialog = false
             selectedItineraryId = null
-        }, onDismiss = {
+            selectedDate = null
+        },
+        onDismiss = {
             showDeleteItineraryDialog = false
             selectedItineraryId = null
+            selectedDate = null
         }
     )
 
+    // Dialog hapus favorite
     TourizmeDeleteDialog(
         show = showDeleteFavoriteDialog,
         message = "Hapus dari daftar favorit?",
@@ -206,8 +211,12 @@ fun ItineraryScreen(
                 Toast.makeText(context, "Dihapus dari favorit", Toast.LENGTH_SHORT).show()
             }
             showDeleteFavoriteDialog = false
+            selectedDestinationId = null
         },
-        onDismiss = { showDeleteFavoriteDialog = false }
+        onDismiss = {
+            showDeleteFavoriteDialog = false
+            selectedDestinationId = null
+        }
     )
 
     ItineraryContent(
@@ -216,19 +225,18 @@ fun ItineraryScreen(
         favoriteIds = favoriteIds,
         isLoading = isLoading,
         error = error,
-        listState = rememberLazyListState(),
+        listState = listState,
         onSearchQueryChange = { viewModel.updateSearchQuery(it) },
         onNotificationClick = onNavigateToNotification,
         onNavigateToDetail = onNavigateToDetail,
         onWishListClick = { destination ->
             if (currentUserId.isBlank()) {
-                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
             } else {
                 if (favoriteIds.contains(destination.id)) {
                     selectedDestinationId = destination.id
                     showDeleteFavoriteDialog = true
                 } else {
-//                    viewModel.addToFavorite(destination.id)
                     FavoriteManager.addDestination(context, currentUserId, destination.id)
                     favoriteIds = favoriteIds + destination.id
                     Toast.makeText(context, "Disimpan ke favorit", Toast.LENGTH_SHORT).show()
@@ -237,7 +245,8 @@ fun ItineraryScreen(
         },
         onClick = { destination -> onNavigateToDetail(destination.id) },
         onDeleteItineraryClick = { item ->
-            selectedItinerary = item
+            selectedItineraryId = item.itinerary.id
+            selectedDate = item.itinerary.date
             showDeleteItineraryDialog = true
         }
     )
