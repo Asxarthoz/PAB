@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import com.example.tourtest.core.components.TourizmeBottombar
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.auth.presentation.AuthScreen
+import com.example.tourtest.feature.auth.viewmodel.AuthViewModel
 import com.example.tourtest.feature.detaildestination.presentation.DestinationDetailScreen
 import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 import com.example.tourtest.feature.homepage.presentation.HomepageScreen
@@ -77,6 +78,12 @@ fun ComposeApp() {
         )
     }
 
+    val authViewModel: AuthViewModel = viewModel {
+        AuthViewModel(
+            application = application
+        )
+    }
+
     val currentScreen = backStack.lastOrNull()
 
     TourizmeTheme {
@@ -106,6 +113,7 @@ fun ComposeApp() {
                     entryProvider = entryProvider {
                         entry<Routes.AuthRoute> {
                             AuthScreen(
+                                viewModel = authViewModel,
                                 onLoginSuccess = {
                                     backStack.clear()
                                     backStack.add(Routes.HomeRoute)
