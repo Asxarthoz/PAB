@@ -100,7 +100,6 @@ object AuthManager {
         }
     }
 
-
     fun loginUser(
         context: Context,
         inputEmailOrNickName: String,
