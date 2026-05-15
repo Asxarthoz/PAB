@@ -22,10 +22,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,31 +32,37 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.ui.theme.TourizmeTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.runtime.saveable.rememberSaveable
+import com.example.tourtest.feature.auth.viewmodel.AuthViewModel
+
+sealed class AuthFormState{
+    data class Name(val value: String) : AuthFormState()
+    data class Nickname(val value: String) : AuthFormState()
+    data class Email(val value: String) : AuthFormState()
+    data class Password(val value: String) : AuthFormState()
+    data class ConfirmPassword(val value: String) : AuthFormState()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthScreen(
-    onLoginSuccess: () -> Unit
-) {
+fun AuthContent(
+    isLogin: Boolean,
+    name: String,
+    nickname: String,
+    emailOrNickname: String,
+    password: String,
+    confirmPassword: String,
+    passwordVisible: Boolean,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onStateChange: (AuthFormState) -> Unit,
+    onToggleMode: () -> Unit,
+    onAuthClick: () -> Unit,
+    onTogglePasswordVisibility: () -> Unit
+){
     val context = LocalContext.current
-    var isLogin by rememberSaveable { mutableStateOf(true) }
-    var name by rememberSaveable { mutableStateOf("") }
-    var nickname by rememberSaveable { mutableStateOf("") }
-    var emailOrNickname by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        AuthManager.initializeDataFromAssets(context)
-    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -100,7 +102,7 @@ fun AuthScreen(
                     color = MaterialTheme.colorScheme.errorContainer
                 ) {
                     Text(
-                        text = errorMessage!!,
+                        text = errorMessage,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodySmall
@@ -115,7 +117,7 @@ fun AuthScreen(
                 if (!isLogin) {
                     TextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = { onStateChange(AuthFormState.Name(it)) },
                         label = { Text("Nama lengkap") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading,
@@ -125,7 +127,7 @@ fun AuthScreen(
 
                     TextField(
                         value = nickname,
-                        onValueChange = { nickname = it },
+                        onValueChange = { onStateChange(AuthFormState.Nickname(it)) },
                         label = { Text("Nickname") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading,
@@ -136,7 +138,7 @@ fun AuthScreen(
 
                 TextField(
                     value = emailOrNickname,
-                    onValueChange = { emailOrNickname = it },
+                    onValueChange = { onStateChange(AuthFormState.Email(it)) },
                     label = {
                         Text(
                             if (isLogin) "Email atau Nickname"
@@ -153,7 +155,7 @@ fun AuthScreen(
 
                 TextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = { onStateChange(AuthFormState.Password(it)) },
                     label = { Text("Kata sandi") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isLoading,
@@ -162,7 +164,7 @@ fun AuthScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        IconButton(onClick =  onTogglePasswordVisibility ) {
                             Icon(imageVector = image, contentDescription = null)
                         }
                     },
@@ -172,7 +174,7 @@ fun AuthScreen(
                 if (!isLogin) {
                     TextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        onValueChange = { onStateChange(AuthFormState.ConfirmPassword(it)) },
                         label = { Text("Konfirmasi kata sandi") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading,
@@ -181,7 +183,7 @@ fun AuthScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
                             val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            IconButton(onClick =  onTogglePasswordVisibility ) {
                                 Icon(imageVector = image, contentDescription = null)
                             }
                         },
@@ -224,96 +226,7 @@ fun AuthScreen(
                     )
                 } else {
                     Button(
-                        onClick = {
-                            isLoading = true
-                            errorMessage = null
-
-                            if (isLogin) {
-                                if (emailOrNickname.isBlank()) {
-                                    errorMessage = "Email atau Nickname tidak boleh kosong"
-                                    isLoading = false
-                                    return@Button
-                                }
-
-                                if (password.isBlank()) {
-                                    errorMessage = "Password tidak boleh kosong"
-                                    isLoading = false
-                                    return@Button
-                                }
-
-                                val success = AuthManager.loginUser(
-                                    context = context,
-                                    inputEmailOrNickName = emailOrNickname.trim(),
-                                    inputPassword = password.trim()
-                                )
-
-                                if (success) {
-                                    val user = AuthManager.getLoggedInUser(
-                                        context = context,
-                                        emailOrNickName = emailOrNickname.trim(),
-                                        password = password.trim()
-                                    )
-                                    user?.let {
-                                        AuthManager.setCurrentUser(it.id)
-//                                        onLoginSuccess()
-                                    } ?: run {
-                                        errorMessage = "Gagal menggambil data user"
-                                    }
-                                    onLoginSuccess()
-                                } else {
-                                    errorMessage = "Email/Nickname atau password salah!"
-                                }
-                                isLoading = false
-                            } else {
-                                when {
-                                    name.isBlank() -> errorMessage = "Nama lengkap tidak boleh kosong"
-                                    nickname.isBlank() -> errorMessage = "Nickname tidak boleh kosong"
-                                    emailOrNickname.isBlank() -> errorMessage = "Email tidak boleh kosong"
-                                    !android.util.Patterns.EMAIL_ADDRESS.matcher(emailOrNickname).matches() ->
-                                        errorMessage = "Email tidak valid"
-                                    password.length < 6 -> errorMessage = "Password minimal 6 karakter"
-                                    password != confirmPassword -> errorMessage = "Konfirmasi password tidak cocok"
-                                    else -> {
-                                        val success = AuthManager.registerUser(
-                                            context = context,
-                                            name = name.trim(),
-                                            nickname = nickname.trim(),
-                                            email = emailOrNickname.trim(),
-                                            password = password.trim()
-                                        )
-
-                                        if (success) {
-                                            val loginSuccess = AuthManager.loginUser(
-                                                context = context,
-                                                inputEmailOrNickName = emailOrNickname,
-                                                inputPassword = password
-                                            )
-                                            if (loginSuccess) {
-                                                val user = AuthManager.getLoggedInUser(
-                                                    context = context,
-                                                    emailOrNickName = emailOrNickname,
-                                                    password = password
-                                                )
-                                                user?.let {
-                                                    AuthManager.setCurrentUser(it.id)
-                                                }
-                                                onLoginSuccess()
-                                            } else {
-                                                errorMessage = "Registrasi berhasil, silakan login"
-                                                isLogin = true
-                                                password = ""
-                                                confirmPassword = ""
-                                                isLoading = false
-                                            }
-                                        } else {
-                                            errorMessage = "Registrasi gagal. Email atau Nickname sudah digunakan!"
-                                            isLoading = false
-                                        }
-                                    }
-                                }
-                                isLoading = false
-                            }
-                        },
+                        onClick = onAuthClick,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(if (isLogin) "Masuk" else "Daftar")
@@ -321,18 +234,7 @@ fun AuthScreen(
                 }
 
                 TextButton(
-                    onClick = {
-                        isLogin = !isLogin
-                        errorMessage = null
-                        password = ""
-                        confirmPassword = ""
-                        if (isLogin) {
-                            name = ""
-                            nickname = ""
-                        } else {
-                            emailOrNickname = ""
-                        }
-                    },
+                    onClick = onToggleMode,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     enabled = !isLoading
                 ) {
@@ -347,19 +249,83 @@ fun AuthScreen(
         }
     }
 }
-
-@Preview(showBackground = true, name = "Login Screen")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LoginPreview() {
+fun AuthScreen(
+    viewModel: AuthViewModel,
+    onLoginSuccess: () -> Unit
+) {
+    LaunchedEffect(Unit) {
+        viewModel.loginSucces.collect {
+            onLoginSuccess()
+        }
+    }
+
+    AuthContent(
+        isLogin = viewModel.isLogin,
+        name = viewModel.name,
+        nickname = viewModel.nickname,
+        emailOrNickname = viewModel.emailOrNickname,
+        password = viewModel.password,
+        confirmPassword = viewModel.confirmPassword,
+        passwordVisible = viewModel.passwordVisible,
+        isLoading = viewModel.isLoading,
+        errorMessage = viewModel.errorMessage,
+        onStateChange = { state ->
+            when (state) {
+                is AuthFormState.Name -> viewModel.name = state.value
+                is AuthFormState.Nickname -> viewModel.nickname = state.value
+                is AuthFormState.Email -> viewModel.emailOrNickname = state.value
+                is AuthFormState.Password -> viewModel.password = state.value
+                is AuthFormState.ConfirmPassword -> viewModel.confirmPassword = state.value
+            }
+        },
+        onToggleMode = { viewModel.toggleMode() },
+        onTogglePasswordVisibility = { viewModel.togglePasswordVisibility() },
+        onAuthClick = { viewModel.handleAuthAction() }
+    )
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun LoginPreview() {
     TourizmeTheme {
-        AuthScreen(onLoginSuccess = {})
+        AuthContent(
+            isLogin = true,
+            name = "",
+            nickname = "",
+            emailOrNickname = "tian@mail.com",
+            password = "password",
+            confirmPassword = "",
+            passwordVisible = false,
+            isLoading = false,
+            errorMessage = null,
+            onStateChange = {},
+            onToggleMode = {},
+            onAuthClick = {},
+            onTogglePasswordVisibility = {}
+        )
     }
 }
 
-@Preview(showBackground = true, name = "Register Screen")
+@Preview(showSystemUi = true)
 @Composable
-private fun RegisterPreview() {
+fun RegisterPreview() {
     TourizmeTheme {
-        AuthScreen(onLoginSuccess = {})
+        AuthContent(
+            isLogin = false,
+            name = "Tian Qoqo",
+            nickname = "Qoqo",
+            emailOrNickname = "tian@mail.com",
+            password = "password",
+            confirmPassword = "password",
+            passwordVisible = true,
+            isLoading = false,
+            errorMessage = "Contoh Pesan Error",
+            onStateChange = {},
+            onToggleMode = {},
+            onAuthClick = {},
+            onTogglePasswordVisibility = {}
+        )
     }
 }
