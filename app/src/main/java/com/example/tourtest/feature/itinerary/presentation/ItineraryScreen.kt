@@ -1,4 +1,5 @@
 package com.example.tourtest.feature.itinerary.presentation
+import TourizmeDatePicker
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,12 +41,10 @@ import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.feature.auth.manager.AuthManager
-import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
 import com.example.tourtest.model.Destination
-import com.example.tourtest.model.Itinerary
 import com.example.tourtest.model.ItineraryWithDestination
 import kotlin.collections.component1
 import kotlin.collections.component2
