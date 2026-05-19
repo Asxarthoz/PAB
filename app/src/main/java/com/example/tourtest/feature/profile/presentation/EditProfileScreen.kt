@@ -32,10 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.feature.profile.manager.ProfileManager
-import kotlinx.coroutines.launch
 import android.util.Patterns
 import android.util.Log
 import java.io.File
@@ -45,86 +43,33 @@ import java.util.Locale
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.tourtest.model.Users
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditProfileScreen(
+fun EditProfileContent(
+    name: String,
+    nickName: String,
+    email: String,
+    profileBitmap: Bitmap?,
+    currentUser: Users?,
+    isLoading: Boolean,
+    isSaving: Boolean,
+    error: String?,
+    onNameChange: (String) -> Unit,
+    onNickNameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
     onBack: () -> Unit,
-    profileManager: ProfileManager
-) {
-    Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")
+    onSave: () -> Unit,
+    onDeletePhoto: () -> Unit,
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
+    onClearError: () -> Unit
 
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    val currentUser by profileManager.userState.collectAsStateWithLifecycle()
-    val isLoading by profileManager.isLoading.collectAsStateWithLifecycle()
-    val error by profileManager.error.collectAsStateWithLifecycle()
-    val updateSuccess by profileManager.updateSuccess.collectAsStateWithLifecycle()
-    val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
-
-    var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
-    var nickName by remember(currentUser) { mutableStateOf(currentUser?.nickName ?: "") }
-    var email by remember(currentUser) { mutableStateOf(currentUser?.email ?: "") }
+    ) {
     var showImagePickerDialog by remember { mutableStateOf(false) }
-    var isSaving by rememberSaveable { mutableStateOf(false) }
-
-    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
-
-    LaunchedEffect(Unit) {
-        profileManager.loadUserFromFile()
-    }
-
-    LaunchedEffect(profileImagePath) {
-        if (profileImagePath != null) {
-            profileBitmap = profileManager.loadProfileImage(profileImagePath)
-        }
-    }
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        if (bitmap != null) {
-            Log.d("ProfileDebug", "Foto berhasil: ${bitmap.width}x${bitmap.height}")
-            profileBitmap = bitmap
-            Toast.makeText(context, "Foto berhasil diambil", Toast.LENGTH_SHORT).show()
-        } else {
-            Log.d("ProfileDebug", "Gagal ambil foto")
-            Toast.makeText(context, "Gagal mengambil foto", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val bitmap = context.contentResolver.openInputStream(it)
-                ?.use { inputStream -> BitmapFactory.decodeStream(inputStream) }
-            profileBitmap = bitmap
-            Toast.makeText(context, "Foto berhasil dipilih", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    fun createImageFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val imageFileName = "JPEG_${timeStamp}_"
-        return File.createTempFile(imageFileName, ".jpg", context.cacheDir)
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            profileManager.clearError()
-            profileManager.resetUpdateSuccess()
-        }
-    }
-
-    LaunchedEffect(updateSuccess) {
-        if (updateSuccess) {
-            Toast.makeText(context, "Profil berhasil diupdate!", Toast.LENGTH_SHORT).show()
-            onBack()
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -144,42 +89,21 @@ fun EditProfileScreen(
                 actions = {
                     if (profileBitmap != null) {
                         IconButton(
-                            onClick = {
-                                scope.launch {
-                                    profileManager.deleteProfileImage()
-                                    profileBitmap = null
-                                    Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
-                                }
-                            }
+//                            onClick = {
+//                                scope.launch {
+//                                    profileManager.deleteProfileImage()
+//                                    profileBitmap = null
+//                                    Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
+//                                }
+//                            }
+                            onClick = onDeletePhoto
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = "Hapus Foto")
                         }
                     }
 
                     TextButton(
-                        onClick = {
-                            if (!isSaving) {
-                                scope.launch {
-                                    isSaving = true
-
-                                    profileBitmap?.let { bitmap ->
-                                        val savedPath = profileManager.saveProfileImage(bitmap)
-                                        if (savedPath != null) {
-                                            profileManager.updateProfileImagePath(savedPath)
-                                            Toast.makeText(context, "Foto berhasil disimpan", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-
-                                    profileManager.updateProfile(
-                                        name = name,
-                                        nickName = nickName,
-                                        email = email
-                                    )
-
-                                    isSaving = false
-                                }
-                            }
-                        },
+                        onClick = onSave,
                         enabled = !isLoading && !isSaving
                     ) {
                         if (isLoading || isSaving) {
@@ -275,7 +199,7 @@ fun EditProfileScreen(
                         TextButton(
                             onClick = {
                                 showImagePickerDialog = false
-                                cameraLauncher.launch(null)
+                                onCameraClick()
                             }
                         ) {
                             Icon(Icons.Default.CameraAlt, contentDescription = null)
@@ -287,7 +211,7 @@ fun EditProfileScreen(
                         TextButton(
                             onClick = {
                                 showImagePickerDialog = false
-                                galleryLauncher.launch("image/*")
+                                onGalleryClick()
                             }
                         ) {
                             Icon(Icons.Default.PhotoLibrary, contentDescription = null)
@@ -318,7 +242,7 @@ fun EditProfileScreen(
                             fontSize = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { profileManager.clearError() }) {
+                        IconButton(onClick = onClearError) {
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = "Tutup",
@@ -341,7 +265,7 @@ fun EditProfileScreen(
                 ) {
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = onNameChange,
                         label = { Text("Nama Lengkap") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -354,7 +278,7 @@ fun EditProfileScreen(
 
                     OutlinedTextField(
                         value = nickName,
-                        onValueChange = { nickName = it },
+                        onValueChange = onNickNameChange,
                         label = { Text("Nickname") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -367,7 +291,7 @@ fun EditProfileScreen(
 
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = onEmailChange,
                         label = { Text("Email") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -411,5 +335,174 @@ fun EditProfileScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileScreen(
+    onBack: () -> Unit,
+    profileManager: ProfileManager
+) {
+    Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val currentUser by profileManager.userState.collectAsStateWithLifecycle()
+    val isLoading by profileManager.isLoading.collectAsStateWithLifecycle()
+    val error by profileManager.error.collectAsStateWithLifecycle()
+    val updateSuccess by profileManager.updateSuccess.collectAsStateWithLifecycle()
+    val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
+
+    var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
+    var nickName by remember(currentUser) { mutableStateOf(currentUser?.nickName ?: "") }
+    var email by remember(currentUser) { mutableStateOf(currentUser?.email ?: "") }
+    var showImagePickerDialog by remember { mutableStateOf(false) }
+    var isSaving by rememberSaveable { mutableStateOf(false) }
+
+    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    LaunchedEffect(Unit) {
+        profileManager.loadUserFromFile()
+    }
+
+    LaunchedEffect(profileImagePath) {
+        if (profileImagePath != null) {
+            profileBitmap = profileManager.loadProfileImage(profileImagePath)
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            Log.d("ProfileDebug", "Foto berhasil: ${bitmap.width}x${bitmap.height}")
+            profileBitmap = bitmap
+            Toast.makeText(context, "Foto berhasil diambil", Toast.LENGTH_SHORT).show()
+        } else {
+            Log.d("ProfileDebug", "Gagal ambil foto")
+            Toast.makeText(context, "Gagal mengambil foto", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val bitmap = context.contentResolver.openInputStream(it)
+                ?.use { inputStream -> BitmapFactory.decodeStream(inputStream) }
+            profileBitmap = bitmap
+            Toast.makeText(context, "Foto berhasil dipilih", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun createImageFile(): File {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val imageFileName = "JPEG_${timeStamp}_"
+        return File.createTempFile(imageFileName, ".jpg", context.cacheDir)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            profileManager.clearError()
+            profileManager.resetUpdateSuccess()
+        }
+    }
+
+    LaunchedEffect(updateSuccess) {
+        if (updateSuccess) {
+            Toast.makeText(context, "Profil berhasil diupdate!", Toast.LENGTH_SHORT).show()
+            onBack()
+        }
+    }
+
+    EditProfileContent(
+        name = name,
+        nickName = nickName,
+        email = email,
+        profileBitmap = profileBitmap,
+        currentUser = currentUser,
+        isLoading = isLoading,
+        isSaving = isSaving,
+        error = error,
+        onNameChange = { name = it},
+        onNickNameChange = { nickName = it },
+        onEmailChange = { email = it },
+        onBack = onBack,
+        onSave = {
+            if (!isSaving) {
+                scope.launch {
+                    isSaving = true
+                    try {
+                        profileBitmap?.let { bitmap ->
+                            val savedPath = profileManager.saveProfileImage(bitmap)
+                            if (savedPath != null) {
+                                profileManager.updateProfileImagePath(savedPath)
+                                Toast.makeText(
+                                    context,
+                                    "Foto berhasil disimpan",
+                                    Toast.LENGTH_SHORT
+                                )
+                                    .show()
+                            }
+                        }
+
+                        profileManager.updateProfile(
+                            name = name,
+                            nickName = nickName,
+                            email = email
+                        )
+                    } catch (e: Exception) {
+
+                    } finally {
+                        isSaving = false
+                    }
+                }
+            }
+        },
+        onDeletePhoto = {
+            scope.launch {
+                profileManager.deleteProfileImage()
+                profileBitmap = null
+                Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
+            }
+        },
+        onCameraClick = {
+            cameraLauncher.launch(null)
+        },
+        onGalleryClick = {
+            galleryLauncher.launch("image/*")
+        },
+        onClearError = {
+            profileManager.clearError()
+        }
+    )
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun EditProfilePreview() {
+    MaterialTheme {
+        EditProfileContent(
+            name = "Qoqo Altiano",
+            nickName = "Qoqo",
+            email = "qoqo@student.uns.ac.id",
+            profileBitmap = null,
+            currentUser = null,
+            isLoading = false,
+            isSaving = false,
+            error = null,
+            onNameChange = {},
+            onNickNameChange = {},
+            onEmailChange = {},
+            onBack = {},
+            onSave = {},
+            onDeletePhoto = {},
+            onCameraClick = {},
+            onGalleryClick = {},
+            onClearError = {}
+        )
     }
 }
