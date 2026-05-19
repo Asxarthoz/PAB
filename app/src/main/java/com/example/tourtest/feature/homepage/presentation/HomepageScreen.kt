@@ -1,5 +1,6 @@
 package com.example.tourtest.feature.homepage.presentation
 
+import TourizmeDatePicker
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -51,7 +52,7 @@ fun HomepageContent(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToNotification: () -> Unit,
     onWishListClick: (Destination) -> Unit,
-    onItineraryClick: (Destination, String) -> Unit,
+    onItineraryClick: (Destination) -> Unit,
     onClick: (Destination) -> Unit,
 ) {
     Scaffold(
@@ -183,7 +184,7 @@ fun HomepageContent(
                             isWishlisted = isFavorite,
                             isItineraried = isItineraried,
                             onWishListClick = { onWishListClick(destination) },
-                            onItineraryClick = { date -> onItineraryClick(destination, date) },
+                            onItineraryClick = { onItineraryClick(destination) },
                             onClick = { onNavigateToDetail(destination.id) }
                         )
                     }
@@ -217,6 +218,8 @@ fun HomepageScreen(
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
+
+    var selectedDestinationForItinerary by remember { mutableStateOf<Destination?>(null) }
 
     fun refreshStatus() {
         favoriteIds = FavoriteManager.getAllFavorite(context)
@@ -252,6 +255,26 @@ fun HomepageScreen(
         }
     )
 
+    TourizmeDatePicker(
+        destination = selectedDestinationForItinerary,
+        onDismiss = { selectedDestinationForItinerary = null },
+        onDateSelected = { formattedDate, targetTimeMillis ->
+            if (currentUserId.isBlank()) {
+                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
+            } else {
+                selectedDestinationForItinerary?.let { destination ->
+                    val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                    if (success) {
+                        itinerariedIds = itinerariedIds + destination.id
+                        Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Gagal disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    )
+
     HomepageContent(
         greeting = greeting,
         userName = userName,
@@ -284,21 +307,10 @@ fun HomepageScreen(
                 }
             }
         },
-        onItineraryClick = { destination, selectedDate ->
-            if (currentUserId.isBlank()) {
-                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-            } else {
-                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
-                if (success) {
-                    itinerariedIds = itinerariedIds + destination.id
-                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Gagal disimpan ke daftar rencana!", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
+        onItineraryClick = { destination ->
+            selectedDestinationForItinerary = destination
         },
         onClick = { destination -> onNavigateToDetail(destination.id) }
-
     )
 }
 
@@ -321,7 +333,7 @@ fun HomepagePreview(@PreviewParameter(DestinationProvider::class) destinations: 
             onNavigateToDetail = {},
             onNavigateToNotification = {},
             onWishListClick = {},
-            onItineraryClick = { _, _ -> },
+            onItineraryClick = { _ -> },
             onClick = {}
         )
     }
