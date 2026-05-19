@@ -27,43 +27,30 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.feature.profile.manager.PasswordManager
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.tourtest.feature.auth.presentation.AuthFormState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChangePasswordScreen(
+fun ChangePasswordContent(
+    oldPassword: String,
+    newPassword: String,
+    confirmPassword: String,
+    showOldPassword: Boolean,
+    showNewPassword: Boolean,
+    showConfirmPassword: Boolean,
+    isLoading: Boolean,
+    error: String?,
+    onOldPasswordChange: (String) -> Unit,
+    onNewPasswordChange: (String) -> Unit,
+    onConfirmPasswordChange: (String) -> Unit,
+    onToggleOldPassword: () -> Unit,
+    onToggleNewPassword: () -> Unit,
+    onToggleConfirmPassword: () -> Unit,
+    onClearError: () -> Unit,
     onBack: () -> Unit,
-    passwordManager: PasswordManager
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    val isLoading by passwordManager.isLoading.collectAsStateWithLifecycle()
-    val isSuccess by passwordManager.isSuccess.collectAsStateWithLifecycle()
-    val error by passwordManager.error.collectAsStateWithLifecycle()
-
-    var oldPassword by rememberSaveable { mutableStateOf("") }
-    var newPassword by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
-    var showOldPassword by rememberSaveable { mutableStateOf(false) }
-    var showNewPassword by rememberSaveable { mutableStateOf(false) }
-    var showConfirmPassword by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        passwordManager.loadCurrentUser()
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            passwordManager.resetState()
-        }
-    }
-
-    LaunchedEffect(isSuccess) {
-        if (isSuccess) {
-            onBack()
-        }
-    }
-
+    onSave: () -> Unit
+){
     Scaffold(
         topBar = {
             TopAppBar(
@@ -88,7 +75,7 @@ fun ChangePasswordScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
@@ -141,7 +128,7 @@ fun ChangePasswordScreen(
                             fontSize = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { passwordManager.clearError() }) {
+                        IconButton(onClick = onClearError) {
                             Icon(
                                 Icons.Default.VisibilityOff,
                                 contentDescription = "Tutup",
@@ -164,7 +151,7 @@ fun ChangePasswordScreen(
                 ) {
                     OutlinedTextField(
                         value = oldPassword,
-                        onValueChange = { oldPassword = it },
+                        onValueChange = onOldPasswordChange,
                         label = { Text("Password Lama") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -172,7 +159,7 @@ fun ChangePasswordScreen(
                             Icon(Icons.Default.Lock, contentDescription = null)
                         },
                         trailingIcon = {
-                            IconButton(onClick = { showOldPassword = !showOldPassword }) {
+                            IconButton(onClick = onToggleOldPassword) {
                                 Icon(
                                     if (showOldPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (showOldPassword) "Sembunyikan" else "Tampilkan"
@@ -184,7 +171,7 @@ fun ChangePasswordScreen(
 
                     OutlinedTextField(
                         value = newPassword,
-                        onValueChange = { newPassword = it },
+                        onValueChange = onNewPasswordChange,
                         label = { Text("Password Baru") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -192,7 +179,7 @@ fun ChangePasswordScreen(
                             Icon(Icons.Default.Lock, contentDescription = null)
                         },
                         trailingIcon = {
-                            IconButton(onClick = { showNewPassword = !showNewPassword }) {
+                            IconButton(onClick = onToggleNewPassword) {
                                 Icon(
                                     if (showNewPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (showNewPassword) "Sembunyikan" else "Tampilkan"
@@ -210,7 +197,7 @@ fun ChangePasswordScreen(
 
                     OutlinedTextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        onValueChange = onConfirmPasswordChange,
                         label = { Text("Konfirmasi Password Baru") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -218,7 +205,7 @@ fun ChangePasswordScreen(
                             Icon(Icons.Default.Lock, contentDescription = null)
                         },
                         trailingIcon = {
-                            IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                            IconButton(onClick = onToggleConfirmPassword) {
                                 Icon(
                                     if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (showConfirmPassword) "Sembunyikan" else "Tampilkan"
@@ -275,18 +262,7 @@ fun ChangePasswordScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = {
-                    scope.launch {
-                        val result = passwordManager.changePassword(
-                            oldPassword = oldPassword,
-                            newPassword = newPassword,
-                            confirmPassword = confirmPassword
-                        )
-                        if (result) {
-                            Toast.makeText(context, "Password berhasil diubah", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                },
+                onClick = onSave,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading &&
                         oldPassword.isNotBlank() &&
@@ -309,5 +285,99 @@ fun ChangePasswordScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChangePasswordScreen(
+    onBack: () -> Unit,
+    passwordManager: PasswordManager
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val isLoading by passwordManager.isLoading.collectAsStateWithLifecycle()
+    val isSuccess by passwordManager.isSuccess.collectAsStateWithLifecycle()
+    val error by passwordManager.error.collectAsStateWithLifecycle()
+
+    var oldPassword by rememberSaveable { mutableStateOf("") }
+    var newPassword by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var showOldPassword by rememberSaveable { mutableStateOf(false) }
+    var showNewPassword by rememberSaveable { mutableStateOf(false) }
+    var showConfirmPassword by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        passwordManager.loadCurrentUser()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            passwordManager.resetState()
+        }
+    }
+
+    LaunchedEffect(isSuccess) {
+        if (isSuccess) {
+            onBack()
+        }
+    }
+
+    ChangePasswordContent(
+        oldPassword = oldPassword,
+        newPassword = newPassword,
+        confirmPassword = confirmPassword,
+        showOldPassword = showOldPassword,
+        showNewPassword = showNewPassword,
+        showConfirmPassword = showConfirmPassword,
+        isLoading = isLoading,
+        error = error,
+        onOldPasswordChange = { oldPassword = it },
+        onNewPasswordChange = { newPassword = it },
+        onConfirmPasswordChange = { confirmPassword = it},
+        onToggleOldPassword = { showOldPassword = !showOldPassword },
+        onToggleNewPassword = { showNewPassword = !showNewPassword },
+        onToggleConfirmPassword = { showConfirmPassword = !showConfirmPassword },
+        onClearError = { passwordManager.clearError() },
+        onBack = onBack,
+        onSave = {
+            scope.launch {
+                val result = passwordManager.changePassword(
+                    oldPassword = oldPassword,
+                    newPassword = newPassword,
+                    confirmPassword = confirmPassword
+                )
+                if (result) {
+                    Toast.makeText(context, "Password berhasil diubah", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    )
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun ChangePasswordPreview() {
+    MaterialTheme {
+        ChangePasswordContent(
+            oldPassword = "passwordLama123",
+            newPassword = "passwordBaru456",
+            confirmPassword = "passwordBaru456",
+            showOldPassword = false,
+            showNewPassword = true,
+            showConfirmPassword = false,
+            isLoading = false,
+            error = null,
+            onOldPasswordChange = {},
+            onNewPasswordChange = {},
+            onConfirmPasswordChange = {},
+            onToggleOldPassword = {},
+            onToggleNewPassword = {},
+            onToggleConfirmPassword = {},
+            onClearError = {},
+            onBack = {},
+            onSave = {}
+        )
     }
 }
