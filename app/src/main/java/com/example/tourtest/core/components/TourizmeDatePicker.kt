@@ -30,7 +30,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-public fun TourizmeDatePicker(
+fun TourizmeDatePicker(
     destination: Destination?,
     onDismiss: () -> Unit,
     onDateSelected: (String, Long) -> Unit
