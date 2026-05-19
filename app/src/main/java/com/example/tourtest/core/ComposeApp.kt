@@ -20,6 +20,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import com.example.tourtest.core.components.TourizmeBottombar
+import com.example.tourtest.database.notification.AppDatabase
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.auth.presentation.AuthScreen
 import com.example.tourtest.feature.auth.viewmodel.AuthViewModel
@@ -40,7 +41,9 @@ import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.itinerary.presentation.ItineraryScreen
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
+import com.example.tourtest.feature.notification.manager.NotificationManager
 import com.example.tourtest.feature.notification.presentation.NotificationScreen
+import com.example.tourtest.feature.notification.viewmodel.NotificationViewModel
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.ui.theme.TourizmeTheme
 
@@ -49,7 +52,7 @@ fun ComposeApp() {
     val context = LocalContext.current
     val application = context.applicationContext as Application
     val backStack = rememberNavBackStack(Routes.AuthRoute)
-    var currentRoute by remember { mutableStateOf<Any?>(null) }
+
     val homepageViewModel: HomepageViewModel = viewModel {
         HomepageViewModel(
             getAllDestinations = { HomepageManager.readDestinationsFromData(context) }
@@ -141,6 +144,9 @@ fun ComposeApp() {
                                 },
                                 onNavigateToNotification = {
                                     backStack.add(Routes.NotificationRoute)
+                                },
+                                onNavigateToLogin = {
+                                    backStack.add(Routes.AuthRoute)
                                 }
                             )
                         }
@@ -153,13 +159,35 @@ fun ComposeApp() {
                                 },
                                 onNavigateToNotification = {
                                     backStack.add(Routes.NotificationRoute)
+                                },
+                                onNavigateToLogin = {
+                                    backStack.add(Routes.AuthRoute)
                                 }
                             )
                         }
 
                         entry<Routes.NotificationRoute> {
+                            val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                            val notificationViewModel: NotificationViewModel = viewModel(
+                                factory = object : ViewModelProvider.Factory {
+                                    override fun<T : ViewModel> create(modelClass: Class<T>): T {
+                                        return NotificationViewModel(
+                                            application = application,
+                                            userId = currentUserId,
+                                            notificationDao = AppDatabase.getDatabase(context).notificationDao(),
+                                            itineraryManager = ItineraryManager,
+                                            notificationManager = NotificationManager,
+                                            homepageManager = HomepageManager
+                                        ) as T
+                                    }
+                                }
+                            )
                             NotificationScreen(
-                                onBack = { backStack.removeLastOrNull() }
+                                viewModel = notificationViewModel,
+                                onBack = { backStack.removeLastOrNull() },
+                                onNavigateToLogin = {
+                                    backStack.add(Routes.AuthRoute)
+                                }
                             )
                         }
 
@@ -178,7 +206,8 @@ fun ComposeApp() {
                                 },
                                 onNavigateToFullScreenImage = {
                                     backStack.add(Routes.FullScreenImageRoute)
-                                }
+                                },
+                                onBack = { backStack.removeLastOrNull() }
                             )
                         }
 
