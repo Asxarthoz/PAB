@@ -1,7 +1,7 @@
 package com.example.tourtest.feature.favorite.manager
 
 import android.content.Context
-import com.example.tourtest.model.WishList
+import com.example.tourtest.model.Favorite
 
 object FavoriteManager {
     private const val INTERNAL_FILE_NAME = "datawishlist.txt"
@@ -13,7 +13,7 @@ object FavoriteManager {
                 return false
             }
 
-            val newWishList = WishList(
+            val newWishList = Favorite(
                 id = java.util.UUID.randomUUID().toString(),
                 userId = currentUserId,
                 destinationId = destinationId
@@ -50,8 +50,8 @@ object FavoriteManager {
         }
     }
 
-    fun getAllFavorite(context: Context): List<WishList> {
-        val wishLists = mutableListOf<WishList>()
+    fun getAllFavorite(context: Context): List<Favorite> {
+        val wishLists = mutableListOf<Favorite>()
         return try {
             val file = context.getFileStreamPath(INTERNAL_FILE_NAME)
             if (file.exists()) {
@@ -64,7 +64,7 @@ object FavoriteManager {
                             val parts = trimmedLine.split("|").map { it.trim() }
                             if (parts.size >= 3) {
                                 wishLists.add(
-                                    WishList(
+                                    Favorite(
                                         id = parts[0],
                                         userId = parts[1],
                                         destinationId = parts[2]
