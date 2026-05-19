@@ -1,5 +1,6 @@
 package com.example.tourtest.feature.favorite.presentation
 
+import TourizmeDatePicker
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,9 +12,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Looks
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -34,6 +42,7 @@ import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.viewmodel.FavoriteViewModel
 import com.example.tourtest.model.Destination
+import com.example.tourtest.model.Favorite
 import com.example.tourtest.provider.homepage.DestinationProvider
 import com.example.tourtest.ui.theme.TourizmeTheme
 
@@ -50,7 +59,7 @@ fun FavoriteContent(
     onNotificationClick: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
     onWishListClick: (Destination) -> Unit,
-    onItineraryClick: (Destination, String) -> Unit,
+    onItineraryClick: (Destination) -> Unit,
     onClick: (Destination) -> Unit
 ){
     Scaffold(
@@ -88,7 +97,7 @@ fun FavoriteContent(
                             isWishlisted = isFavorite,
                             isItineraried = isItineraried,
                             onWishListClick = {onWishListClick(destination)},
-                            onItineraryClick = { date -> onItineraryClick(destination, date)},
+                            onItineraryClick = { onItineraryClick(destination)},
                             onClick = { onNavigateToDetail(destination.id) }
                         )
                     }
@@ -100,13 +109,58 @@ fun FavoriteContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun FavoriteGuestContent(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onNotificationClick: () -> Unit,
+    onNavigateToLogin: () -> Unit
+
+) {
+    Scaffold(
+        topBar = {
+            TourizmeSimpleHeader(
+                title = "Destinasi Favorit",
+                searchQuery = searchQuery,
+                onSearchQueryChange = onSearchQueryChange,
+                onNotificationClick = onNotificationClick
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            TourizmeEmptyState(
+                message = "Anda belum Login",
+                subMessage = "Silahkan Login untuk menambah/melihat destiansi favorit anda",
+                imageVector = Icons.Default.Lock,
+                actionButton = {
+                    Button(
+                        onClick = onNavigateToLogin,
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    ) {
+                        Text("Login Sekarang!")
+                    }
+                }
+            )
+
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun FavoriteScreen(
     viewModel: FavoriteViewModel,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateToNotification: () -> Unit
+    onNavigateToNotification: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
     val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val isGuest = currentUserId == "GUEST" || currentUserId.isBlank()
+
     val favoriteDestinations by viewModel.favoriteDestinations.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -114,6 +168,8 @@ fun FavoriteScreen(
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
+
+    var selectedDestinationForItinerary by remember { mutableStateOf<Destination?>(null)}
 
     fun refreshItineraryStatus() {
         itinerariedIds = ItineraryManager.getAllItinerary(context)
@@ -123,8 +179,10 @@ fun FavoriteScreen(
     }
 
     LaunchedEffect(currentUserId) {
-        viewModel.loadFavorite()
-        refreshItineraryStatus()
+        if (!isGuest) {
+            viewModel.loadFavorite()
+            refreshItineraryStatus()
+        }
     }
 
     val listState = rememberLazyListState()
@@ -146,43 +204,75 @@ fun FavoriteScreen(
         }
     )
 
-    FavoriteContent(
-        searchQuery = searchQuery,
-        favoriteDestinations = favoriteDestinations,
-        favoriteIds = favoriteIds,
-        itinerariedIds = itinerariedIds,
-        isLoading = isLoading,
-        listState = listState,
-        onSearchQueryChange = { viewModel.updateSearchQuery(it) },
-        onNotificationClick = onNavigateToNotification,
-        onNavigateToDetail = onNavigateToDetail,
-        onWishListClick = { destination ->
+    TourizmeDatePicker(
+        destination = selectedDestinationForItinerary,
+        onDismiss = { selectedDestinationForItinerary = null },
+        onDateSelected = { formattedDate, targetTimeMillis ->
             if (currentUserId.isBlank()) {
-                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
             } else {
-                if (favoriteIds.contains(destination.id)) {
-                    selectedDestinationId = destination.id
-                    showDeleteFavoriteDialog = true
-                } else {
-                    viewModel.addToFavorite(destination.id)
-                    Toast.makeText(context, "Disimpan ke favorit", Toast.LENGTH_SHORT).show()
+                selectedDestinationForItinerary?.let { destination ->
+                    val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                    if (success) {
+                        refreshItineraryStatus()
+                        Toast.makeText(context, "Berhasil disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Gagal disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
-        },onItineraryClick = { destination, selectedDate ->
-            if (currentUserId.isBlank()) {
-                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-            } else {
-                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
-                if (success) {
-                    refreshItineraryStatus()
-                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Gagal disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-        },
-        onClick = { destination -> onNavigateToDetail(destination.id) }
+        }
     )
+    if (currentUserId == "GUEST" || currentUserId.isBlank()) {
+        FavoriteGuestContent(
+            searchQuery = searchQuery,
+            onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+            onNotificationClick = onNavigateToNotification,
+            onNavigateToLogin = onNavigateToLogin
+        )
+    }
+    else {
+        FavoriteContent(
+            searchQuery = searchQuery,
+            favoriteDestinations = favoriteDestinations,
+            favoriteIds = favoriteIds,
+            itinerariedIds = itinerariedIds,
+            isLoading = isLoading,
+            listState = listState,
+            onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+            onNotificationClick = onNavigateToNotification,
+            onNavigateToDetail = onNavigateToDetail,
+            onWishListClick = { destination ->
+                if (currentUserId.isBlank()) {
+                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    if (favoriteIds.contains(destination.id)) {
+                        selectedDestinationId = destination.id
+                        showDeleteFavoriteDialog = true
+                    } else {
+                        viewModel.addToFavorite(destination.id)
+                        Toast.makeText(context, "Disimpan ke favorit", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },onItineraryClick = { destination ->
+//            if (currentUserId.isBlank()) {
+//                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+//            } else {
+//                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
+//                if (success) {
+//                    refreshItineraryStatus()
+//                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
+//                } else {
+//                    Toast.makeText(context, "Gagal disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
+//                }
+//            }
+                selectedDestinationForItinerary = destination
+            },
+            onClick = { destination -> onNavigateToDetail(destination.id) }
+        )
+    }
+
+
 }
 
 @Preview(showSystemUi = true, name = "Favorite Screen Preview")
@@ -202,7 +292,7 @@ fun FavoritePreview(
             onNotificationClick = {},
             onNavigateToDetail = {},
             onWishListClick = {},
-            onItineraryClick = { _, _ -> },
+            onItineraryClick = { _ -> },
             onClick = {}
         )
     }
