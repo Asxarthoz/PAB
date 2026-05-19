@@ -125,6 +125,17 @@ object AuthManager {
     }
 
     fun getUserById(context: Context, userId: String): Users? {
+        if (userId == "GUEST") {
+            return Users(
+                id = "GUEST",
+                name = "Tamu Jelajah",
+                nickName = "Guest",
+                email = "",
+                password = "",
+                role = "GUEST",
+                isVerified = false
+            )
+        }
         val users = getAllUsers(context)
         return users.find { it.id == userId }
     }
