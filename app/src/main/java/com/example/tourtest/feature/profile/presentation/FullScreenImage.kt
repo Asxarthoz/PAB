@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -19,9 +20,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun FullScreenImageScreen(
-    onBack: () -> Unit,
-    imageBitmap: Bitmap?
+@OptIn(ExperimentalMaterial3Api::class)
+fun FullScreenImageContent(
+    imageBitmap: Bitmap?,
+    onBack: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -31,7 +33,7 @@ fun FullScreenImageScreen(
         contentAlignment = Alignment.Center
     ) {
         IconButton(
-            onClick = { onBack() },
+            onClick = onBack ,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
@@ -50,4 +52,15 @@ fun FullScreenImageScreen(
             Text("Tidak ada foto")
         }
     }
+}
+
+@Composable
+fun FullScreenImageScreen(
+    onBack: () -> Unit,
+    imageBitmap: Bitmap?
+) {
+    FullScreenImageContent(
+        imageBitmap = imageBitmap,
+        onBack = onBack
+    )
 }
