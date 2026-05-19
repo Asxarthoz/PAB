@@ -3,6 +3,10 @@ package com.example.tourtest.feature.itinerary.manager
 import android.content.Context
 import com.example.tourtest.model.Itinerary
 import java.util.UUID
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Intent
+import com.example.tourtest.feature.notification.dataaccess.NotificationReceiver
 
 object ItineraryManager {
     private const val INTERNAL_FILE_NAME = "dataitinerary.txt"
@@ -94,5 +98,33 @@ object ItineraryManager {
 
     fun getItineraryByUser(context: Context, userId: String): List<Itinerary> {
         return getAllItinerary(context).filter { it.userId == userId }
+    }
+
+    // buat notif
+    fun scheduleNotification(
+        context: Context,
+        triggerTimeMillis: Long,
+        message: String,
+        destinationId: String
+    ) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("NOTIFICATION_MESSAGE", message)
+            putExtra("DESTINATION_ID", destinationId)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            destinationId.hashCode(),
+            intent,
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            triggerTimeMillis,
+            pendingIntent
+        )
     }
 }
