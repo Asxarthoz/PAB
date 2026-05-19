@@ -355,7 +355,7 @@ fun ProfileScreen(
         )
     }
 
-    if (currentUser?.id == "GUEST" || currentUser?.id.isBlank()) {
+    if (currentUser?.id == "GUEST" || currentUser?.id.isNullOrBlank()) {
         ProfileGuestContent(
             onBack = onLogout,
             onNavigateToLogin = onLogout
