@@ -3,6 +3,7 @@ package com.example.tourtest.feature.detaildestination.presentation
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,7 +31,144 @@ import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
+import com.example.tourtest.model.Destination
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DestinationDetailContent(
+    destination: Destination?,
+    isFavorite: Boolean,
+    isItineraried: Boolean,
+    isLoading: Boolean,
+    scrollState: ScrollState,
+    onBack: () -> Unit,
+    onFavoriteClick: () -> Unit,
+    onCalendarClick: () -> Unit,
+    onOpenMaps: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(destination?.name ?: "Detail") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            destination == null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Destinasi tidak ditemukan")
+                }
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    AsyncImage(
+                        model = destination.imageUrl,
+                        contentDescription = destination.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
+                        error = painterResource(R.drawable.undraw_loading_ui_egb4)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(
+                            onClick = onFavoriteClick
+                        ) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                contentDescription = "Favorite",
+                                tint = if (isFavorite) Color.Red else Color.Gray,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = onCalendarClick
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = "Itinerary",
+                                tint = if (isItineraried) Color.Cyan else Color.Gray,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = destination.name,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Mulai dari Rp ${destination.price}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    TextButton(
+                        onClick = onOpenMaps,
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Lokasi",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = destination.location,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Text(
+                        text = "Deskripsi",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    Text(
+                        text = destination.description,
+                        textAlign = TextAlign.Justify,
+                        lineHeight = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationDetailScreen(
@@ -99,132 +238,43 @@ fun DestinationDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(destination?.name ?: "Detail") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            destination == null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Destinasi tidak ditemukan")
-                }
-            }
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    AsyncImage(
-                        model = destination.imageUrl,
-                        contentDescription = destination.name,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentScale = ContentScale.Crop,
-                        placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
-                        error = painterResource(R.drawable.undraw_loading_ui_egb4)
-                    )
+    DestinationDetailContent(
+        destination = destination,
+        isFavorite = isFavorite,
+        isItineraried = isItineraried,
+        isLoading = isLoading,
+        scrollState = scrollState,
+        onBack = onBack,
+        onFavoriteClick = {
+            if (isFavorite) showDeleteDialog = true else viewModel.toggleFavorite()
+        },
+        onCalendarClick = { showDatePicker = true },
+        onOpenMaps = openMaps
+    )
+}
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        IconButton(
-                            onClick = {
-                                if (isFavorite) {
-                                    showDeleteDialog = true
-                                } else {
-                                    viewModel.toggleFavorite()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                contentDescription = "Wishlist",
-                                tint = if (isFavorite) Color.Red else Color.Gray,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { showDatePicker = true }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Itinerary",
-                                tint = if (isItineraried) Color.Cyan else Color.Gray,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = destination.name,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "Mulai dari Rp ${destination.price}",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    TextButton(
-                        onClick = openMaps,
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Lokasi",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = destination.location,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-
-                    Text(
-                        text = "Deskripsi",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Text(
-                        text = destination.description,
-                        textAlign = TextAlign.Justify,
-                        lineHeight = 22.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
+@Preview(showSystemUi = true)
+@Composable
+fun DestinationDetailPreview() {
+    MaterialTheme {
+        DestinationDetailContent(
+            destination = Destination(
+                id = "1",
+                name = "Candi Borobudur",
+                location = "Magelang",
+                description = "Candi Buddha terbesar di dunia yang dibangun pada abad ke-9.",
+                price = "50.000",
+                imageUrl = "",
+                gmapUrl = "",
+            ),
+            isFavorite = true,
+            isItineraried = false,
+            isLoading = false,
+            scrollState = rememberScrollState(),
+            onBack = {},
+            onFavoriteClick = {},
+            onCalendarClick = {},
+            onOpenMaps = {}
+        )
     }
 }
