@@ -56,6 +56,19 @@ class AuthViewModel(
         passwordVisible = !passwordVisible
     }
 
+    fun handleGuestLogin() {
+        isLoading = true
+        errorMessage = null
+
+        viewModelScope.launch {
+            AuthManager.setCurrentUser("GUEST")
+
+            _loginSuccess.emit(Unit)
+
+            isLoading = false
+        }
+    }
+
     fun handleAuthAction() {
         isLoading = true
         errorMessage = null
