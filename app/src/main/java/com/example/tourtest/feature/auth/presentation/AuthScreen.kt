@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.example.tourtest.ui.theme.TourizmeTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import com.example.tourtest.feature.auth.viewmodel.AuthViewModel
 
 sealed class AuthFormState{
@@ -60,7 +61,8 @@ fun AuthContent(
     onStateChange: (AuthFormState) -> Unit,
     onToggleMode: () -> Unit,
     onAuthClick: () -> Unit,
-    onTogglePasswordVisibility: () -> Unit
+    onTogglePasswordVisibility: () -> Unit,
+    onGuestLogin: () -> Unit
 ){
     val context = LocalContext.current
 
@@ -231,6 +233,15 @@ fun AuthContent(
                     ) {
                         Text(if (isLogin) "Masuk" else "Daftar")
                     }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Button(
+                        onClick = onGuestLogin,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Masuk Sebagai Tamu")
+                    }
                 }
 
                 TextButton(
@@ -255,6 +266,16 @@ fun AuthScreen(
     viewModel: AuthViewModel,
     onLoginSuccess: () -> Unit
 ) {
+    val isLogin = viewModel.isLogin
+    val name = viewModel.name
+    val nickname = viewModel.nickname
+    val emailOrNickname = viewModel.emailOrNickname
+    val password = viewModel.password
+    val confirmPassword = viewModel.confirmPassword
+    val passwordVisible = viewModel.passwordVisible
+    val isLoading = viewModel.isLoading
+    val errorMessage = viewModel.errorMessage
+
     LaunchedEffect(Unit) {
         viewModel.loginSucces.collect {
             onLoginSuccess()
@@ -262,15 +283,15 @@ fun AuthScreen(
     }
 
     AuthContent(
-        isLogin = viewModel.isLogin,
-        name = viewModel.name,
-        nickname = viewModel.nickname,
-        emailOrNickname = viewModel.emailOrNickname,
-        password = viewModel.password,
-        confirmPassword = viewModel.confirmPassword,
-        passwordVisible = viewModel.passwordVisible,
-        isLoading = viewModel.isLoading,
-        errorMessage = viewModel.errorMessage,
+        isLogin = isLogin,
+        name = name,
+        nickname = nickname,
+        emailOrNickname = emailOrNickname,
+        password = password,
+        confirmPassword = confirmPassword,
+        passwordVisible = passwordVisible,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
         onStateChange = { state ->
             when (state) {
                 is AuthFormState.Name -> viewModel.name = state.value
@@ -282,7 +303,8 @@ fun AuthScreen(
         },
         onToggleMode = { viewModel.toggleMode() },
         onTogglePasswordVisibility = { viewModel.togglePasswordVisibility() },
-        onAuthClick = { viewModel.handleAuthAction() }
+        onAuthClick = { viewModel.handleAuthAction() },
+        onGuestLogin = { viewModel.handleGuestLogin() }
     )
 }
 
@@ -303,7 +325,8 @@ fun LoginPreview() {
             onStateChange = {},
             onToggleMode = {},
             onAuthClick = {},
-            onTogglePasswordVisibility = {}
+            onTogglePasswordVisibility = {},
+            onGuestLogin = {}
         )
     }
 }
@@ -325,7 +348,8 @@ fun RegisterPreview() {
             onStateChange = {},
             onToggleMode = {},
             onAuthClick = {},
-            onTogglePasswordVisibility = {}
+            onTogglePasswordVisibility = {},
+            onGuestLogin = {}
         )
     }
 }
