@@ -8,13 +8,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
 public fun TourizmeEmptyState(
     message: String,
-    subMessage: String? = null
+    subMessage: String? = null,
+    imageVector : ImageVector = Icons.Default.Search,
+    actionButton: @Composable (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -39,8 +43,14 @@ public fun TourizmeEmptyState(
                 Text(
                     text = subMessage,
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
+            }
+
+            if (actionButton != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                actionButton()
             }
         }
     }
