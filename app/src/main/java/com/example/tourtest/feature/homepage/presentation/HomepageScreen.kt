@@ -200,7 +200,8 @@ fun HomepageContent(
 fun HomepageScreen(
     viewModel: HomepageViewModel,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateToNotification: () -> Unit
+    onNavigateToNotification: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
     val currentUserId = AuthManager.getCurrentUserId()?: ""
@@ -218,6 +219,7 @@ fun HomepageScreen(
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
+    var showLoginPromptDialog by remember { mutableStateOf(false) }
 
     var selectedDestinationForItinerary by remember { mutableStateOf<Destination?>(null) }
 
@@ -275,6 +277,31 @@ fun HomepageScreen(
         }
     )
 
+    if (showLoginPromptDialog) {
+       AlertDialog(
+           onDismissRequest = { showLoginPromptDialog = false },
+           title = { Text(text= "Fitur Terbatas") },
+           text = { Text(text = "Mohon login terlebih dahulu untuk menggunakan fitur ini.") },
+           confirmButton = {
+               Button(
+                   onClick = {
+                       showLoginPromptDialog = false
+                       onNavigateToLogin()
+                   }
+               ) {
+                   Text(text = "Login")
+               }
+           },
+           dismissButton = {
+               TextButton(
+                   onClick = { showLoginPromptDialog = false }
+               ) {
+                   Text(text = "Batal")
+               }
+           }
+       )
+    }
+
     HomepageContent(
         greeting = greeting,
         userName = userName,
@@ -290,8 +317,9 @@ fun HomepageScreen(
         onNavigateToDetail = onNavigateToDetail,
         onNavigateToNotification = onNavigateToNotification,
         onWishListClick = { destination ->
-            if (currentUserId.isBlank()) {
-                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+            if (currentUserId == "GUEST" || currentUserId.isBlank()) {
+                showLoginPromptDialog = true
+//                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 if (favoriteIds.contains(destination.id)) {
                     selectedDestinationId = destination.id
@@ -308,7 +336,12 @@ fun HomepageScreen(
             }
         },
         onItineraryClick = { destination ->
-            selectedDestinationForItinerary = destination
+            if (currentUserId == "GUEST" || currentUserId.isBlank()) {
+                showLoginPromptDialog = true
+            } else {
+                selectedDestinationForItinerary = destination
+
+            }
         },
         onClick = { destination -> onNavigateToDetail(destination.id) }
     )
