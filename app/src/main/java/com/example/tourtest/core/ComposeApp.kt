@@ -132,6 +132,9 @@ fun ComposeApp() {
                                 },
                                 onNavigateToNotification = {
                                     backStack.add(Routes.NotificationRoute)
+                                },
+                                onNavigateToLogin = {
+                                    backStack.add(Routes.AuthRoute)
                                 }
                             )
                         }
@@ -231,7 +234,10 @@ fun ComposeApp() {
 
                             DestinationDetailScreen(
                                 viewModel = detailViewModel,
-                                onBack = { backStack.removeLastOrNull() }
+                                onBack = { backStack.removeLastOrNull() },
+                                onNavigateToLogin = {
+                                    backStack.add(Routes.AuthRoute)
+                                }
                             )
                         }
 
