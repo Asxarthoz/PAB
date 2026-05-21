@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.core.components.TourizmeDeleteDialog
+import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 import com.example.tourtest.model.Destination
 
@@ -173,9 +176,11 @@ fun DestinationDetailContent(
 @Composable
 fun DestinationDetailScreen(
     viewModel: DetailViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
+    val currentUserId = AuthManager.getCurrentUserId()?: ""
     val destinationState by viewModel.destination.collectAsStateWithLifecycle()
     val destination = destinationState
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
@@ -199,6 +204,7 @@ fun DestinationDetailScreen(
             Toast.makeText(context, "Tidak dapat membuka peta", Toast.LENGTH_SHORT).show()
         }
     }
+    var showLoginPromptDialog by remember { mutableStateOf(false) }
 
     TourizmeDeleteDialog(
         show = showDeleteDialog,
@@ -238,6 +244,29 @@ fun DestinationDetailScreen(
         }
     }
 
+    if (showLoginPromptDialog) {
+        AlertDialog(
+            onDismissRequest = { showLoginPromptDialog = false },
+            title = { Text("Fitur Terbatas") },
+            text = { Text("Silahkan login terlebih dahulu untuk menggunakan fitur Favorite dan Itinerary.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLoginPromptDialog = false
+                        onNavigateToLogin()
+                    }
+                ) {
+                    Text("Login")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLoginPromptDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
     DestinationDetailContent(
         destination = destination,
         isFavorite = isFavorite,
@@ -246,9 +275,18 @@ fun DestinationDetailScreen(
         scrollState = scrollState,
         onBack = onBack,
         onFavoriteClick = {
-            if (isFavorite) showDeleteDialog = true else viewModel.toggleFavorite()
+            if (currentUserId == "GUEST" || currentUserId.isBlank()) {
+                showLoginPromptDialog = true
+            } else {
+                if (isFavorite) showDeleteDialog = true else viewModel.toggleFavorite()
+            }
         },
-        onCalendarClick = { showDatePicker = true },
+        onCalendarClick = {
+            if (currentUserId == "GUEST" || currentUserId.isBlank()) {
+                showLoginPromptDialog = true
+            } else {
+                showDatePicker = true
+            } },
         onOpenMaps = openMaps
     )
 }
