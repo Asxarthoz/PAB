@@ -29,15 +29,14 @@ class ProfileManager(
     val profileImagePath: StateFlow<String?> = _profileImagePath.asStateFlow()
     private val imageCache = mutableMapOf<String, Bitmap>()
 
-    suspend fun loadUserFromFile() {
+    suspend fun loadUserFromFile(userId: String) {
         _isLoading.value = true
         _error.value = null
 
         withContext(Dispatchers.IO) {
             try {
-                val userId = AuthManager.getCurrentUserId()
-                if (userId != null) {
-                    val user = AuthManager.getUserById(context, userId)
+                val user = AuthManager.getUserById(context, userId)
+                if (user != null) {
                     _userState.update { user }
                     if (user?.profileImage != null) {
                         _profileImagePath.value = user.profileImage

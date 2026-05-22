@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,7 +41,7 @@ import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
-import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
@@ -188,12 +189,14 @@ fun ItineraryGuestContent(
 @Composable
 fun ItineraryScreen(
     viewModel: ItineraryViewModel,
+    userSession: UserSession,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
+    val currentUserId = currentUserIdFromStore ?: "GUEST"
     val isGuest = currentUserId == "GUEST" || currentUserId.isBlank()
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -229,23 +232,24 @@ fun ItineraryScreen(
             viewModel.loadItineraries()
         }
     }
-
-    TourizmeDatePicker(
-        destination = selectedDestinationForReschedule,
-        onDismiss = { selectedDestinationForReschedule = null },
-        onDateSelected = { formattedDate, targetTimeMillis ->
-            if (currentUserId.isNotBlank()) {
-                selectedDestinationForReschedule?.let { destination ->
-                    val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
-                    if (success) {
-                        viewModel.loadItineraries()
-                        refreshStatus()
-                        Toast.makeText(context, "Jadwal rencana berhasil diperbarui!", Toast.LENGTH_SHORT).show()
+    selectedDestinationForReschedule?.let { destination ->
+        TourizmeDatePicker(
+            destination = destination,
+            onDismiss = { selectedDestinationForReschedule = null },
+            onDateSelected = { formattedDate, targetTimeMillis ->
+                if (currentUserId.isNotBlank()) {
+                    selectedDestinationForReschedule?.let { destination ->
+                        val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                        if (success) {
+                            viewModel.loadItineraries()
+                            refreshStatus()
+                            Toast.makeText(context, "Jadwal rencana berhasil diperbarui!", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
-        }
-    )
+        )
+    }
 
     val listState = rememberLazyListState()
 

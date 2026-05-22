@@ -1,9 +1,11 @@
 package com.example.tourtest.feature.favorite.viewmodel
 
 import android.app.Application
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
@@ -13,16 +15,19 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class FavoriteViewModel(
     application: Application,
     private val favoriteManager: FavoriteManager,
-    private val homepageManager: HomepageManager
+    private val homepageManager: HomepageManager,
+    private val sharedPrefs: SharedPreferences,
+    private val userSession: UserSession
 ) : AndroidViewModel(application) {
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery = _searchQuery.asStateFlow()
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _allFavorites = MutableStateFlow<List<Destination>>(emptyList())
 
@@ -56,6 +61,13 @@ class FavoriteViewModel(
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+        sharedPrefs.edit().putString("fav_search_prefs", query).apply()
+    }
+
+    init {
+        val savedQuery = sharedPrefs.getString("fav_search_prefs", "") ?: ""
+        _searchQuery.value = savedQuery
+        loadFavorite()
     }
 
     fun loadFavorite() {
@@ -64,7 +76,8 @@ class FavoriteViewModel(
             _error.value = null
 
             try {
-                val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                val currentUserIdFromStore = userSession.userId.firstOrNull()
+                val currentUserId = currentUserIdFromStore ?: ""
                 Log.d("FAVORITE_DEBUG", "currentUserId: $currentUserId")
 
                 // Mengasumsikan nama method di manager juga sudah disesuaikan atau tetap dipanggil

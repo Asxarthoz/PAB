@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -20,6 +23,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import com.example.tourtest.core.components.TourizmeBottombar
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.database.notification.AppDatabase
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.auth.presentation.AuthScreen
@@ -46,16 +50,40 @@ import com.example.tourtest.feature.notification.presentation.NotificationScreen
 import com.example.tourtest.feature.notification.viewmodel.NotificationViewModel
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.ui.theme.TourizmeTheme
+import kotlinx.coroutines.launch
+import kotlinx.serialization.builtins.UIntArraySerializer
 
 @Composable
 fun ComposeApp() {
     val context = LocalContext.current
     val application = context.applicationContext as Application
+    val userSession = remember { UserSession(context) }
+    val scope = rememberCoroutineScope()
     val backStack = rememberNavBackStack(Routes.AuthRoute)
+
+    val homePrefs = remember { context.getSharedPreferences("home_search_prefs", android.content.Context.MODE_PRIVATE) }
+    val favPrefs = remember { context.getSharedPreferences("fav_search_prefs", android.content.Context.MODE_PRIVATE) }
+    val itinPrefs = remember { context.getSharedPreferences("itin_search_prefs", android.content.Context.MODE_PRIVATE) }
+
+    val currentUserIdByStore by userSession.userId.collectAsState(initial = null)// Jalankan pengecekan sekali saja saat app dibuka
+    LaunchedEffect(currentUserIdByStore) {
+        if (currentUserIdByStore != null && currentUserIdByStore != "GUEST") {
+            // Jika ada ID tersimpan dan bukan Guest, sinkronkan ke AuthManager
+            AuthManager.setCurrentUser(currentUserIdByStore!!)
+
+            // Jika sekarang sedang di AuthRoute, otomatis pindah ke Home
+            if (backStack.lastOrNull() == Routes.AuthRoute) {
+                backStack.clear()
+                backStack.add(Routes.HomeRoute)
+            }
+        }
+    }
 
     val homepageViewModel: HomepageViewModel = viewModel {
         HomepageViewModel(
-            getAllDestinations = { HomepageManager.readDestinationsFromData(context) }
+            application = application,
+            getAllDestinations = { HomepageManager.readDestinationsFromData(context) },
+            sharedPrefs = homePrefs
         )
     }
 
@@ -69,7 +97,9 @@ fun ComposeApp() {
         FavoriteViewModel(
             application = application,
             favoriteManager = FavoriteManager,
-            homepageManager = HomepageManager
+            homepageManager = HomepageManager,
+            sharedPrefs = favPrefs,
+            userSession = userSession
         )
     }
 
@@ -77,7 +107,9 @@ fun ComposeApp() {
         ItineraryViewModel(
             application = application,
             itineraryManager = ItineraryManager,
-            homepageManager = HomepageManager
+            homepageManager = HomepageManager,
+            sharedPrefs = itinPrefs,
+            userSession = userSession
         )
     }
 
@@ -127,6 +159,7 @@ fun ComposeApp() {
                         entry<Routes.HomeRoute> {
                             HomepageScreen(
                                 viewModel = homepageViewModel,
+                                userSession = userSession ,
                                 onNavigateToDetail = { id ->
                                     backStack.add(Routes.DetailRoute(destinationId = id))
                                 },
@@ -142,6 +175,7 @@ fun ComposeApp() {
                         entry<Routes.FavoriteRoute> {
                             FavoriteScreen(
                                 viewModel = favoriteViewModel,
+                                userSession = userSession,
                                 onNavigateToDetail = { id ->
                                     backStack.add(Routes.DetailRoute(destinationId = id))
                                 },
@@ -157,6 +191,7 @@ fun ComposeApp() {
                         entry<Routes.ItineraryRoute> {
                             ItineraryScreen(
                                 viewModel = itineraryViewModel,
+                                userSession = userSession,
                                 onNavigateToDetail = { id ->
                                     backStack.add(Routes.DetailRoute(destinationId = id))
                                 },
@@ -170,8 +205,10 @@ fun ComposeApp() {
                         }
 
                         entry<Routes.NotificationRoute> {
-                            val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                            val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
+                            val currentUserId = currentUserIdFromStore ?: "GUEST"
                             val notificationViewModel: NotificationViewModel = viewModel(
+                                key = currentUserId,
                                 factory = object : ViewModelProvider.Factory {
                                     override fun<T : ViewModel> create(modelClass: Class<T>): T {
                                         return NotificationViewModel(
@@ -187,6 +224,7 @@ fun ComposeApp() {
                             )
                             NotificationScreen(
                                 viewModel = notificationViewModel,
+                                userSession  = userSession,
                                 onBack = { backStack.removeLastOrNull() },
                                 onNavigateToLogin = {
                                     backStack.add(Routes.AuthRoute)
@@ -197,9 +235,14 @@ fun ComposeApp() {
                         entry<Routes.ProfileRoute> {
                             ProfileScreen(
                                 viewModel = profileViewModel,
+                                userSession = userSession,
                                 onLogout = {
-                                    backStack.clear()
-                                    backStack.add(Routes.AuthRoute)
+                                    scope.launch {
+                                        userSession.clearSession()
+                                        AuthManager.logout()
+                                        backStack.clear()
+                                        backStack.add(Routes.AuthRoute)
+                                    }
                                 },
                                 onNavigateToEditProfile = {
                                     backStack.add(Routes.EditProfileRoute)
@@ -216,8 +259,10 @@ fun ComposeApp() {
 
                         entry<Routes.DetailRoute> { route ->
                             val destinationId = route.destinationId
-                            val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                            val currentUserIdFromStore by userSession.userId.collectAsState(initial = "GUEST")
+                            val currentUserId = currentUserIdFromStore ?: "GUEST"
                             val detailViewModel: DetailViewModel = viewModel(
+                                key = "${destinationId}_${currentUserId}",
                                 factory = object : ViewModelProvider.Factory {
                                     override fun <T : ViewModel> create(modelClass: Class<T>): T {
                                         return DetailViewModel(
@@ -234,6 +279,7 @@ fun ComposeApp() {
 
                             DestinationDetailScreen(
                                 viewModel = detailViewModel,
+                                userSession = userSession,
                                 onBack = { backStack.removeLastOrNull() },
                                 onNavigateToLogin = {
                                     backStack.add(Routes.AuthRoute)
@@ -252,6 +298,7 @@ fun ComposeApp() {
                             val profileManager = ProfileManager(context)
                             EditProfileScreen(
                                 onBack = { backStack.removeLastOrNull() },
+                                userSession = userSession,
                                 profileManager = profileManager
                             )
                         }
@@ -260,6 +307,7 @@ fun ComposeApp() {
                             val passwordManager = PasswordManager(context)
                             ChangePasswordScreen(
                                 onBack = { backStack.removeLastOrNull() },
+//                                userSession = userSession,
                                 passwordManager = passwordManager
                             )
                         }

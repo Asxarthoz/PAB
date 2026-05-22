@@ -1,5 +1,6 @@
 package com.example.tourtest.feature.detaildestination.presentation
 
+import TourizmeDatePicker
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -32,9 +33,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.core.components.TourizmeDeleteDialog
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
 import com.example.tourtest.model.Destination
+import scheduleNotification
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -176,11 +179,13 @@ fun DestinationDetailContent(
 @Composable
 fun DestinationDetailScreen(
     viewModel: DetailViewModel,
+    userSession: UserSession,
     onBack: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val userIdFromStore by userSession.userId.collectAsState(initial = null)
+    val currentUserId = userIdFromStore ?: "GUEST"
     val destinationState by viewModel.destination.collectAsStateWithLifecycle()
     val destination = destinationState
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
@@ -188,6 +193,7 @@ fun DestinationDetailScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedDestinationForItinerary by remember { mutableStateOf<Destination?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
     val scrollState = rememberScrollState()
@@ -217,31 +223,23 @@ fun DestinationDetailScreen(
         onDismiss = { showDeleteDialog = false }
     )
 
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val selectedDate = datePickerState.selectedDateMillis
-                    if (selectedDate != null) {
-                        val formattedDate = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                            .format(java.util.Date(selectedDate))
-                        viewModel.addToItinerary(formattedDate)
-                        Toast.makeText(context, "Jadwal rencana diperbarui", Toast.LENGTH_SHORT).show()
-                    }
-                    showDatePicker = false
-                }) {
-                    Text("Simpan")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Batal")
-                }
+    selectedDestinationForItinerary?.let { currentDestination ->
+        TourizmeDatePicker(
+            destination = currentDestination,
+            onDismiss = { selectedDestinationForItinerary = null },
+            onDateSelected = { formattedDate, targetTimeMillis ->
+                viewModel.addToItinerary(formattedDate)
+
+                scheduleNotification(
+                    context = context,
+                    targetTimeMillis = targetTimeMillis,
+                    destinationName = currentDestination.name,
+                    destinationId = currentDestination.id
+                )
+
+                Toast.makeText(context, "Berhasil disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 
     if (showLoginPromptDialog) {

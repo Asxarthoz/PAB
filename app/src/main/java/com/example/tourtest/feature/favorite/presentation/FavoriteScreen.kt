@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.viewmodel.FavoriteViewModel
@@ -153,12 +155,14 @@ fun FavoriteGuestContent(
 @Composable
 fun FavoriteScreen(
     viewModel: FavoriteViewModel,
+    userSession: UserSession,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val userIdFromStore by userSession.userId.collectAsState(initial = null)
+    val currentUserId = userIdFromStore ?: "GUEST"
     val isGuest = currentUserId == "GUEST" || currentUserId.isBlank()
 
     val favoriteDestinations by viewModel.favoriteDestinations.collectAsStateWithLifecycle()
@@ -204,25 +208,28 @@ fun FavoriteScreen(
         }
     )
 
-    TourizmeDatePicker(
-        destination = selectedDestinationForItinerary,
-        onDismiss = { selectedDestinationForItinerary = null },
-        onDateSelected = { formattedDate, targetTimeMillis ->
-            if (currentUserId.isBlank()) {
-                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
-            } else {
-                selectedDestinationForItinerary?.let { destination ->
-                    val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
-                    if (success) {
-                        refreshItineraryStatus()
-                        Toast.makeText(context, "Berhasil disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Gagal disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
+    selectedDestinationForItinerary?.let { destination ->
+        TourizmeDatePicker(
+            destination = destination,
+            onDismiss = { selectedDestinationForItinerary = null },
+            onDateSelected = { formattedDate, targetTimeMillis ->
+                if (currentUserId.isBlank()) {
+                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
+                } else {
+                    selectedDestinationForItinerary?.let { destination ->
+                        val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                        if (success) {
+                            refreshItineraryStatus()
+                            Toast.makeText(context, "Berhasil disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Gagal disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
-        }
-    )
+        )
+    }
+
     if (currentUserId == "GUEST" || currentUserId.isBlank()) {
         FavoriteGuestContent(
             searchQuery = searchQuery,
@@ -271,8 +278,6 @@ fun FavoriteScreen(
             onClick = { destination -> onNavigateToDetail(destination.id) }
         )
     }
-
-
 }
 
 @Preview(showSystemUi = true, name = "Favorite Screen Preview")

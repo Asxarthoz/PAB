@@ -31,13 +31,11 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TourizmeDatePicker(
-    destination: Destination?,
+    destination: Destination,
     onDismiss: () -> Unit,
     onDateSelected: (String, Long) -> Unit
 ) {
     val context = LocalContext.current
-    if (destination == null) return
-
     val sheetState = rememberModalBottomSheetState()
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
@@ -88,8 +86,8 @@ fun TourizmeDatePicker(
                         scheduleNotification(
                             context = context,
                             targetTimeMillis = selectedDate,
-                            destinationName = destination!!.name,
-                            destinationId = destination!!.id
+                            destinationName = destination.name,
+                            destinationId = destination.id
                         )
                     }
                     onDismiss()
@@ -111,7 +109,7 @@ fun scheduleNotification(
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val currentTime = System.currentTimeMillis()
 
-    val ONE_HOUR = 60 * 60 * 100L
+    val ONE_HOUR = 60 * 60 * 1000L
     val ONE_DAY = 24 * ONE_HOUR
 
     val reminders = listOf(
@@ -140,7 +138,7 @@ fun scheduleNotification(
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            alarmManager.setExactAndAllowWhileIdle(
+            alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerTime,
                 pendingIntent

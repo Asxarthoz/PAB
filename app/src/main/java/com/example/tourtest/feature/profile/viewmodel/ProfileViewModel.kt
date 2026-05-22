@@ -28,14 +28,14 @@ class ProfileViewModel(
     private val _updateSuccess = MutableStateFlow(false)
     val updateSuccess: StateFlow<Boolean> = _updateSuccess.asStateFlow()
 
-    fun loadUser() {
+    fun loadUser(userId: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
 
             try {
                 withContext(Dispatchers.IO) {
-                    profileManager.loadUserFromFile()
+                    profileManager.loadUserFromFile(userId)
                 }
 
                 val user = profileManager.userState.value

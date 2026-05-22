@@ -1,8 +1,12 @@
 package com.example.tourtest.feature.itinerary.viewmodel
 
 import android.app.Application
+import android.content.SharedPreferences
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.model.Destination
 import com.example.tourtest.model.ItineraryWithDestination
 import com.example.tourtest.feature.auth.manager.AuthManager
@@ -13,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -20,11 +25,13 @@ import kotlinx.coroutines.launch
 class ItineraryViewModel(
     application: Application,
     private val itineraryManager: ItineraryManager,
-    private val homepageManager: HomepageManager
+    private val homepageManager: HomepageManager,
+    private val sharedPrefs: SharedPreferences,
+    private val userSession: UserSession
 ) : AndroidViewModel(application) {
 
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery = _searchQuery.asStateFlow()
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _allItineraryList = MutableStateFlow<List<ItineraryWithDestination>>(emptyList())
     val groupedItinerary: StateFlow<Map<String, List<ItineraryWithDestination>>> = combine(
@@ -52,8 +59,15 @@ class ItineraryViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    init {
+        val savedQuery = sharedPrefs.getString("itin_search_prefs", "") ?: ""
+        _searchQuery.value = savedQuery
+        loadItineraries()
+    }
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+        sharedPrefs.edit().putString("itin_search_prefs", query).apply()
     }
 
     fun loadItineraries() {
@@ -62,7 +76,8 @@ class ItineraryViewModel(
             _error.value = null
 
             try {
-                val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                val currentUserIdFromStore = userSession.userId.firstOrNull()
+                val currentUserId = currentUserIdFromStore ?: ""
                 android.util.Log.d("ITINERARY_DEBUG", "currentUserId: $currentUserId")
 
                 val itineraries = itineraryManager.getItineraryByUser(context, currentUserId)

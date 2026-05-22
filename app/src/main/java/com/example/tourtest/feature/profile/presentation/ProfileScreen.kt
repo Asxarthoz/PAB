@@ -1,5 +1,6 @@
 package com.example.tourtest.feature.profile.presentation
 
+import android.R
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -7,10 +8,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Lock
@@ -31,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.TourizmeEmptyState
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.model.Users
 import kotlinx.coroutines.delay
@@ -52,19 +57,10 @@ fun ProfileContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profil Wisatawan") },
-                actions = {
-                    if (currentUser != null) {
-                        IconButton(
-                            onClick = onEditProfile
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Edit,
-                                contentDescription = "Edit Profil"
-                            )
-                        }
-                    }
-                }
+                title = { Text("Profil Wisatawan", fontWeight = FontWeight.SemiBold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->
@@ -109,145 +105,183 @@ fun ProfileContent(
                 }
             }
             currentUser != null -> {
+                val user = currentUser
+
+                // KURUNG BUKA COLUMN UTAMA
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                         .padding(paddingValues)
-                        .padding(16.dp),
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
+                    // --- SECTION 1: HEADER PROFIL ---
+                    Column(
                         modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable {
-                                if (profileBitmap != null) {
-                                    onImageClick()
-                                }
-                            },
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        if (profileBitmap != null) {
-                            Image(
-                                bitmap = profileBitmap!!.asImageBitmap(),
-                                contentDescription = "Foto Profil",
-                                modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(80.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable { if (profileBitmap != null) onImageClick() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (profileBitmap != null) {
+                                Image(
+                                    bitmap = profileBitmap.asImageBitmap(),
+                                    contentDescription = "Foto Profil",
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Rounded.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(60.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = user.name,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "@${user.nickName.ifEmpty { "wisatawan" }}",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val roleLabel = when (user.role) {
+                            "admin" -> "Administrator"
+                            "mitra" -> if (user.isVerified) "Mitra Terverifikasi" else "Mitra (Belum Verifikasi)"
+                            else -> "Wisatawan"
+                        }
+                        val badgeColor = if (user.role == "mitra" && !user.isVerified)
+                            MaterialTheme.colorScheme.errorContainer
+                        else
+                            MaterialTheme.colorScheme.secondaryContainer
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = badgeColor
+                        ) {
+                            Text(
+                                text = roleLabel,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                color = contentColorFor(badgeColor)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Informasi Akun",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            ProfileItem(
-                                label = "Nama Lengkap",
-                                value = currentUser!!.name,
-                                icon = Icons.Rounded.Person
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                            ProfileItem(
-                                label = "Nickname",
-                                value = currentUser!!.nickName,
-                                icon = Icons.Rounded.Person
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                            ProfileItem(
-                                label = "Alamat Email",
-                                value = currentUser!!.email,
+                        Column {
+                            ProfileRowItem(
+                                label = "Email",
+                                value = user.email,
                                 icon = Icons.Rounded.Email
                             )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                            val maskedPassword = "*".repeat(currentUser!!.password.length).ifEmpty { "********" }
-                            ProfileItem(
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            ProfileRowItem(
                                 label = "Kata Sandi",
-                                value = maskedPassword,
+                                value = "*".repeat(user.password.length).ifEmpty { "********" },
                                 icon = Icons.Rounded.Lock
                             )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        }
+                    }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Role",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = when(currentUser!!.role) {
-                                        "admin" -> "Administrator"
-                                        "mitra" -> "Mitra"
-                                        else -> "Wisatawan"
-                                    },
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Pengaturan",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
 
-                            if (currentUser!!.role == "mitra") {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "Status Verifikasi",
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
-                                    Text(
-                                        text = if (currentUser!!.isVerified) "✓ Terverifikasi" else "✗ Belum diverifikasi",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = if (currentUser!!.isVerified)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column {
+                            ActionRowItem(
+                                title = "Edit Data Profil",
+                                icon = Icons.Rounded.Edit,
+                                onClick = onEditProfile
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            ActionRowItem(
+                                title = "Ubah Kata Sandi",
+                                icon = Icons.Rounded.Lock,
+                                onClick = onChangePassword
+                            )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    OutlinedButton(
-                        onClick = onChangePassword,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                    ) {
-                        Icon(Icons.Rounded.Lock, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Ganti Password")
+                    // --- SECTION 4: LOGOUT BUTTON ---
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Button(
+                            onClick = onLogoutClick,
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.ExitToApp, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Keluar dari Akun", fontWeight = FontWeight.SemiBold)
+                        }
                     }
 
-                    Button(
-                        onClick = onLogoutClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Keluar dari Akun")
-                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+
                 }
             }
         }
@@ -300,6 +334,7 @@ fun ProfileGuestContent(
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
+    userSession: UserSession,
     onLogout: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
@@ -307,27 +342,25 @@ fun ProfileScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-
+    val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
+    val currentUserId = currentUserIdFromStore ?: "GUEST"
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        val startTime = System.currentTimeMillis()
-        viewModel.loadUser()
-        val elapsed = System.currentTimeMillis() - startTime
-        if (elapsed < 500) {
-            delay(500 - elapsed)
+    LaunchedEffect(currentUserIdFromStore) {
+        if (currentUserId != null && currentUserId!= "GUEST") {
+            val startTime = System.currentTimeMillis()
+            viewModel.loadUser(currentUserId)
+            val elapsed = System.currentTimeMillis() - startTime
+            if (elapsed < 500) {
+                delay(500 - elapsed)
+            }
         }
     }
 
-//    LaunchedEffect(currentUser) {
-//        if (currentUser?.profileImage != null) {
-//            profileBitmap = profileManager.loadProfileImage(currentUser!!.profileImage)
-//        }
-//    }
 
     if(showLogoutDialog) {
         AlertDialog(
@@ -355,7 +388,7 @@ fun ProfileScreen(
         )
     }
 
-    if (currentUser?.id == "GUEST" || currentUser?.id.isNullOrBlank()) {
+    if (currentUserId == "GUEST" || currentUserId.isBlank()) {
         ProfileGuestContent(
             onBack = onLogout,
             onNavigateToLogin = onLogout
@@ -376,22 +409,45 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileItem(label: String, value: String, icon: ImageVector) {
+fun ProfileRowItem(label: String, value: String, icon: ImageVector) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(24.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+//            modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(text = label, fontSize = 12.sp, color = Color.Gray)
-            Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         }
+    }
+}
+
+@Composable
+fun ActionRowItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+        }
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

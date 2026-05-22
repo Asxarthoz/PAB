@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
@@ -199,12 +200,14 @@ fun HomepageContent(
 @Composable
 fun HomepageScreen(
     viewModel: HomepageViewModel,
+    userSession: UserSession,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-    val currentUserId = AuthManager.getCurrentUserId()?: ""
+    val currentUserIdFromStore by  userSession.userId.collectAsState(initial = null)
+    val currentUserId = currentUserIdFromStore ?: "GUEST"
     val listState = rememberLazyListState()
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -213,7 +216,9 @@ fun HomepageScreen(
 //    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     val greeting = remember { viewModel.getGreeting() }
-    val userName = remember { AuthManager.getUserById(context, currentUserId)?.nickName ?: "Traveler" }
+    val userName = remember(currentUserId) {
+        AuthManager.getUserById(context, currentUserId)?.nickName ?: "Traveler"
+    }
 
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
@@ -257,25 +262,27 @@ fun HomepageScreen(
         }
     )
 
-    TourizmeDatePicker(
-        destination = selectedDestinationForItinerary,
-        onDismiss = { selectedDestinationForItinerary = null },
-        onDateSelected = { formattedDate, targetTimeMillis ->
-            if (currentUserId.isBlank()) {
-                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
-            } else {
-                selectedDestinationForItinerary?.let { destination ->
-                    val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
-                    if (success) {
-                        itinerariedIds = itinerariedIds + destination.id
-                        Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Gagal disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
+    selectedDestinationForItinerary?.let { destination ->
+        TourizmeDatePicker(
+            destination = destination,
+            onDismiss = { selectedDestinationForItinerary = null },
+            onDateSelected = { formattedDate, targetTimeMillis ->
+                if (currentUserId.isBlank()) {
+                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
+                } else {
+                    selectedDestinationForItinerary?.let { destination ->
+                        val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                        if (success) {
+                            itinerariedIds = itinerariedIds + destination.id
+                            Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Gagal disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
-        }
-    )
+        )
+    }
 
     if (showLoginPromptDialog) {
        AlertDialog(

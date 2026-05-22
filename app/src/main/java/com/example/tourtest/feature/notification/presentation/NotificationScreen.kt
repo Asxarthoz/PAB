@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.notification.viewmodel.NotificationViewModel
 import com.example.tourtest.model.NotificationHistory
@@ -51,7 +53,6 @@ import com.example.tourtest.model.NotificationHistory
 fun NotificationContent(
     notifications: List<NotificationHistory>,
     onBack: () -> Unit,
-    onNavigateToLogin: () -> Unit = {},
     emptyMessage: String = "Belum ada notifikasi baru untuk anda"
 ) {
     Scaffold(
@@ -177,11 +178,13 @@ fun NotificationItem(
 @Composable
 fun NotificationScreen(
     viewModel: NotificationViewModel,
+    userSession: UserSession,
     onBack: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val notifications by viewModel.notification.collectAsStateWithLifecycle()
-    val currentUserId = AuthManager.getCurrentUserId() ?:""
+    val userIdFromStore by userSession.userId.collectAsState(initial = null)
+    val currentUserId = userIdFromStore?: "GUEST"
     val isGuest = currentUserId == null || currentUserId == "GUEST"
 
     LaunchedEffect(Unit) {

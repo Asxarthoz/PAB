@@ -1,7 +1,11 @@
 package com.example.tourtest.feature.homepage.viewmodel
 
+import android.app.Application
+import android.content.SharedPreferences
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.model.Destination
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,8 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HomepageViewModel(
-    private val getAllDestinations: () -> List<Destination>
-) : ViewModel() {
+    application: Application,
+    private val getAllDestinations: () -> List<Destination>,
+    private val sharedPrefs: SharedPreferences,
+) :AndroidViewModel(application) {
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -24,6 +30,8 @@ class HomepageViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
+        val savedQuery = sharedPrefs.getString("home_search_prefs", "") ?: ""
+        _searchQuery.value = savedQuery
         loadDestinations()
     }
 
@@ -32,13 +40,19 @@ class HomepageViewModel(
             _isLoading.value = true
             val data = getAllDestinations()
             _allDestinations.value = data
-            _filteredDestinations.value = data
+
+            if(_searchQuery.value.isNotBlank()) {
+                filterDestinations()
+            } else {
+                _filteredDestinations.value = data
+            }
             _isLoading.value = false
         }
     }
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+        sharedPrefs.edit().putString("last_search_query", query).apply()
         filterDestinations()
     }
 

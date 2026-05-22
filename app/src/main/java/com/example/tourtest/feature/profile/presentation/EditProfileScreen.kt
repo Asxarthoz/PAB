@@ -44,6 +44,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.model.Users
 import kotlinx.coroutines.launch
 
@@ -342,6 +343,7 @@ fun EditProfileContent(
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit,
+    userSession: UserSession,
     profileManager: ProfileManager
 ) {
     Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")
@@ -349,6 +351,8 @@ fun EditProfileScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
+    val currentUserId = currentUserIdFromStore ?: "GUEST"
     val currentUser by profileManager.userState.collectAsStateWithLifecycle()
     val isLoading by profileManager.isLoading.collectAsStateWithLifecycle()
     val error by profileManager.error.collectAsStateWithLifecycle()
@@ -365,7 +369,7 @@ fun EditProfileScreen(
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     LaunchedEffect(Unit) {
-        profileManager.loadUserFromFile()
+        profileManager.loadUserFromFile(currentUserId)
     }
 
     LaunchedEffect(profileImagePath) {

@@ -3,13 +3,10 @@ package com.example.tourtest.feature.auth.viewmodel
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.auth.manager.AuthManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -19,6 +16,7 @@ class AuthViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val context = getApplication<Application>().applicationContext
+    private val userSession = UserSession(context)
 
     var isLogin by mutableStateOf(true)
     var name by mutableStateOf("")
@@ -62,6 +60,7 @@ class AuthViewModel(
 
         viewModelScope.launch {
             AuthManager.setCurrentUser("GUEST")
+            userSession.saveSession("GUEST")
 
             _loginSuccess.emit(Unit)
 
@@ -83,6 +82,7 @@ class AuthViewModel(
         }
     }
 
+
     private suspend fun performLogin() {
         if (emailOrNickname.isBlank()) {
             errorMessage = "Email atau Nickname tidak boleh kosong"
@@ -98,6 +98,7 @@ class AuthViewModel(
             val user = AuthManager.getLoggedInUser(context, emailOrNickname.trim(), password.trim())
             user?.let {
                 AuthManager.setCurrentUser(it.id)
+                userSession.saveSession(it.id)
                 _loginSuccess.emit(Unit)
             } ?: run {
                 errorMessage = "Gagal mengambil data user"
@@ -142,6 +143,7 @@ class AuthViewModel(
                         )
                         user?.let {
                             AuthManager.setCurrentUser(it.id)
+                            userSession.saveSession(it.id)
                         }
                         _loginSuccess.emit(Unit)
 //                        onLoginSuccess()
