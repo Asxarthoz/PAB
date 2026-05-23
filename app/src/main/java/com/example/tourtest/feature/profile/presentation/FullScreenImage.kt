@@ -13,17 +13,21 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun FullScreenImageContent(
     imageBitmap: Bitmap?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -35,10 +39,11 @@ fun FullScreenImageContent(
         IconButton(
             onClick = onBack ,
             modifier = Modifier
+                .statusBarsPadding()
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Close, contentDescription = "Tutup")
+            Icon(Icons.Default.Close, contentDescription = "Tutup", tint = Color.White)
         }
 
         if (imageBitmap != null) {
@@ -49,7 +54,7 @@ fun FullScreenImageContent(
                 contentScale = ContentScale.Fit
             )
         } else {
-            Text("Tidak ada foto")
+            Text(text = "Tidak ada foto", color = Color.LightGray, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -57,10 +62,12 @@ fun FullScreenImageContent(
 @Composable
 fun FullScreenImageScreen(
     onBack: () -> Unit,
-    imageBitmap: Bitmap?
+    viewModel: ProfileViewModel
 ) {
+    val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
+
     FullScreenImageContent(
-        imageBitmap = imageBitmap,
+        imageBitmap = profileBitmap,
         onBack = onBack
     )
 }
