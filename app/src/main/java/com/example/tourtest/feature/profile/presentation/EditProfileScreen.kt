@@ -36,12 +36,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.feature.profile.manager.ProfileManager
 import android.util.Patterns
 import android.util.Log
+import androidx.activity.result.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.tourtest.core.data.UserSession
@@ -70,18 +73,13 @@ fun EditProfileContent(
     onClearError: () -> Unit
 
     ) {
+
     var showImagePickerDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Edit Profil",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                },
+                title = { Text(text = "Edit Profil", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
@@ -89,36 +87,22 @@ fun EditProfileContent(
                 },
                 actions = {
                     if (profileBitmap != null) {
-                        IconButton(
-//                            onClick = {
-//                                scope.launch {
-//                                    profileManager.deleteProfileImage()
-//                                    profileBitmap = null
-//                                    Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
-//                                }
-//                            }
-                            onClick = onDeletePhoto
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Hapus Foto")
+                        IconButton(onClick = onDeletePhoto) {
+                            Icon(Icons.Default.Delete, contentDescription = "Hapus Foto", tint = MaterialTheme.colorScheme.error)
                         }
                     }
 
-                    TextButton(
-                        onClick = onSave,
-                        enabled = !isLoading && !isSaving
-                    ) {
+                    TextButton(onClick = onSave, enabled = !isLoading && !isSaving) {
                         if (isLoading || isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else {
                             Icon(Icons.Default.Save, contentDescription = "Simpan")
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Simpan")
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         }
     ) { paddingValues ->
@@ -127,138 +111,109 @@ fun EditProfileContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .padding(16.dp),
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)), // Selaras dengan ProfileScreen
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
+
+            Column(
                 modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .clickable { showImagePickerDialog = true },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (profileBitmap != null) {
-                    Image(
-                        bitmap = profileBitmap!!.asImageBitmap(),
-                        contentDescription = "Foto Profil",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Default Avatar",
-                        modifier = Modifier.size(60.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .clickable { showImagePickerDialog = true },
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.BottomEnd
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Ubah Foto",
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
-                    )
-                }
-            }
-
-            Text(
-                text = "Tap untuk mengubah foto profil",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Edit informasi profil Anda",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (showImagePickerDialog) {
-                AlertDialog(
-                    onDismissRequest = { showImagePickerDialog = false },
-                    title = { Text("Pilih Foto Profil") },
-                    text = { Text("Ambil dari kamera atau pilih dari galeri") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showImagePickerDialog = false
-                                onCameraClick()
-                            }
-                        ) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Kamera")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                showImagePickerDialog = false
-                                onGalleryClick()
-                            }
-                        ) {
-                            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Galeri")
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .clickable { showImagePickerDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (profileBitmap != null) {
+                            Image(
+                                bitmap = profileBitmap.asImageBitmap(),
+                                contentDescription = "Foto Profil",
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Default Avatar",
+                                modifier = Modifier.size(60.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
-                )
-            }
 
-            if (error != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Row(
+                    // Ikon Kamera diletakkan di luar lingkaran agar posisinya pas di pojok kanan bawah
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .size(32.dp)
+                            .offset(x = (-2).dp, y = (-2).dp),
+                        shadowElevation = 2.dp
                     ) {
-                        Text(
-                            text = error!!,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontSize = 14.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = onClearError) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize().clickable { showImagePickerDialog = true }
+                        ) {
                             Icon(
-                                Icons.Default.Check,
-                                contentDescription = "Tutup",
-                                tint = MaterialTheme.colorScheme.onErrorContainer
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Ubah Foto",
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Tap untuk mengubah foto profil",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Edit Informasi Profil Anda",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            if (error != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = error, color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        IconButton(onClick = onClearError) {
+                            Icon(Icons.Default.Check, contentDescription = "Tutup", tint = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                    }
+                }
             }
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -271,10 +226,7 @@ fun EditProfileContent(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Person, null) },
-                        isError = name.isBlank(),
-                        supportingText = {
-                            if (name.isBlank()) Text("Nama lengkap tidak boleh kosong")
-                        }
+                        isError = name.isBlank()
                     )
 
                     OutlinedTextField(
@@ -283,11 +235,8 @@ fun EditProfileContent(
                         label = { Text("Nickname") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Person, null) },
-                        isError = nickName.isBlank(),
-                        supportingText = {
-                            if (nickName.isBlank()) Text("Nickname tidak boleh kosong")
-                        }
+                        leadingIcon = { Icon(Icons.Default.AccountCircle, null) },
+                        isError = nickName.isBlank()
                     )
 
                     OutlinedTextField(
@@ -297,45 +246,36 @@ fun EditProfileContent(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Email, null) },
-                        isError = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches(),
-                        supportingText = {
-                            if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                                Text("Email tidak valid")
-                            }
-                        }
+                        isError = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text("Informasi Akun", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("• Role: ${when(currentUser?.role) {
-                        "admin" -> "Administrator"
-                        "mitra" -> "Mitra"
-                        else -> "Wisatawan"
-                    }}", fontSize = 12.sp)
-                    if (currentUser?.role == "mitra") {
-                        Text(
-                            text = "• Status: ${if (currentUser?.isVerified == true) "Terverifikasi" else "Belum diverifikasi"}",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Text("• ID User: ${currentUser?.id?.take(8)}...", fontSize = 12.sp)
+    if (showImagePickerDialog) {
+        AlertDialog(
+            onDismissRequest = { showImagePickerDialog = false },
+            title = { Text("Pilih Foto Profil") },
+            text = { Text("Ambil dari kamera langsung atau pilih berkas dari galeri") },
+            confirmButton = {
+                TextButton(onClick = { showImagePickerDialog = false; onCameraClick() }) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Kamera")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImagePickerDialog = false; onGalleryClick() }) {
+                    Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Galeri")
                 }
             }
-        }
+        )
     }
 }
 
@@ -352,24 +292,40 @@ fun EditProfileScreen(
     val scope = rememberCoroutineScope()
 
     val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
-    val currentUserId = currentUserIdFromStore ?: "GUEST"
     val currentUser by profileManager.userState.collectAsStateWithLifecycle()
     val isLoading by profileManager.isLoading.collectAsStateWithLifecycle()
     val error by profileManager.error.collectAsStateWithLifecycle()
     val updateSuccess by profileManager.updateSuccess.collectAsStateWithLifecycle()
     val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
 
-    var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
-    var nickName by remember(currentUser) { mutableStateOf(currentUser?.nickName ?: "") }
-    var email by remember(currentUser) { mutableStateOf(currentUser?.email ?: "") }
-    var showImagePickerDialog by remember { mutableStateOf(false) }
+//    var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
+//    var nickName by remember(currentUser) { mutableStateOf(currentUser?.nickName ?: "") }
+//    var email by remember(currentUser) { mutableStateOf(currentUser?.email ?: "") }
+//    var showImagePickerDialog by remember { mutableStateOf(false) }
+//    var isSaving by rememberSaveable { mutableStateOf(false) }
+//
+//    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+//    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    var name by remember { mutableStateOf("") }
+    var nickName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var isSaving by rememberSaveable { mutableStateOf(false) }
-
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
-    LaunchedEffect(Unit) {
-        profileManager.loadUserFromFile(currentUserId)
+    LaunchedEffect(currentUserIdFromStore) {
+        val currentUserId = currentUserIdFromStore
+        if (currentUserId != null && currentUserId != "GUEST" && currentUserId.isNotBlank()) {
+            profileManager.loadUserFromFile(currentUserId)
+        }
+    }
+
+    LaunchedEffect(currentUser) {
+        currentUser?.let { user ->
+            name = user.name
+            nickName = user.nickName
+            email = user.email
+        }
     }
 
     LaunchedEffect(profileImagePath) {
@@ -408,6 +364,16 @@ fun EditProfileScreen(
         return File.createTempFile(imageFileName, ".jpg", context.cacheDir)
     }
 
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            cameraLauncher.launch()
+        } else {
+            Toast.makeText(context, "Izin kamera ditolak. Gagal mengambil gambar.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             profileManager.clearError()
@@ -437,33 +403,38 @@ fun EditProfileScreen(
         onBack = onBack,
         onSave = {
             if (!isSaving) {
-                scope.launch {
-                    isSaving = true
-                    try {
-                        profileBitmap?.let { bitmap ->
-                            val savedPath = profileManager.saveProfileImage(bitmap)
-                            if (savedPath != null) {
-                                profileManager.updateProfileImagePath(savedPath)
-                                Toast.makeText(
-                                    context,
-                                    "Foto berhasil disimpan",
-                                    Toast.LENGTH_SHORT
-                                )
-                                    .show()
+                val userId = currentUserIdFromStore ?: "GUEST"
+                if (userId != null || userId != "GUEST") {
+                    scope.launch {
+                        isSaving = true
+                        try {
+                            profileBitmap?.let { bitmap ->
+                                val savedPath = profileManager.saveProfileImage(bitmap)
+                                if (savedPath != null) {
+                                    profileManager.updateProfileImagePath(savedPath)
+                                    Toast.makeText(
+                                        context,
+                                        "Foto berhasil disimpan",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                }
                             }
+
+                            profileManager.updateProfile(
+                                userId = userId,
+                                name = name,
+                                nickName = nickName,
+                                email = email
+                            )
+                        } catch (e: Exception) {
+                            Log.e("ProfileDebug", "Save error", e)
+                        } finally {
+                            isSaving = false
                         }
-
-                        profileManager.updateProfile(
-                            name = name,
-                            nickName = nickName,
-                            email = email
-                        )
-                    } catch (e: Exception) {
-
-                    } finally {
-                        isSaving = false
                     }
                 }
+
             }
         },
         onDeletePhoto = {
@@ -474,8 +445,7 @@ fun EditProfileScreen(
             }
         },
         onCameraClick = {
-            cameraLauncher.launch(null)
-        },
+            requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)        },
         onGalleryClick = {
             galleryLauncher.launch("image/*")
         },
