@@ -94,8 +94,6 @@ fun HomepageContent(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(0.dp))
-
                     TextField(
                         value = searchQuery,
                         onValueChange =  onSearchQueryChange ,
