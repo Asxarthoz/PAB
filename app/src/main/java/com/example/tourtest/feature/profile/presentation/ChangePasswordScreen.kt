@@ -5,10 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -51,6 +54,7 @@ fun ChangePasswordContent(
     onBack: () -> Unit,
     onSave: () -> Unit
 ){
+    val isSameAsOld = newPassword.isNotEmpty() && oldPassword.isNotEmpty() && newPassword == oldPassword
     Scaffold(
         topBar = {
             TopAppBar(
@@ -65,6 +69,31 @@ fun ChangePasswordContent(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
+                }, actions = {
+                    TextButton(
+                        onClick = onSave,
+                        enabled = !isLoading &&
+                                oldPassword.isNotBlank() &&
+                                newPassword.isNotBlank() &&
+                                newPassword == confirmPassword &&
+                                newPassword.length >= 6 &&
+                                !isSameAsOld
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Save,
+                                contentDescription = "Simpan"
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Simpan")
+                        }
+                    }
                 }
             )
         }
@@ -72,78 +101,82 @@ fun ChangePasswordContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)), // Selaras dengan Profile & Edit Profile
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
+
+            Column(
                 modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    modifier = Modifier.size(60.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(50.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Ubah Kata Sandi Anda",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Pastikan password baru aman dan mudah diingat",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // --- SECTION ALERTER ERROR ---
             Text(
-                text = "Ubah kata sandi Anda",
+                text = "Form Perubahan Sandi",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             )
-
-            Text(
-                text = "Pastikan password baru aman dan mudah diingat",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             if (error != null) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = error!!,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontSize = 14.sp,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Text(text = error, color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 14.sp, modifier = Modifier.weight(1f))
                         IconButton(onClick = onClearError) {
-                            Icon(
-                                Icons.Default.VisibilityOff,
-                                contentDescription = "Tutup",
-                                tint = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                            Icon(Icons.Default.Check, contentDescription = "Tutup", tint = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
+            // --- SECTION INPUT FIELDS (Gaya Kartu Selaras) ---
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -155,14 +188,12 @@ fun ChangePasswordContent(
                         label = { Text("Password Lama") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = {
-                            Icon(Icons.Default.Lock, contentDescription = null)
-                        },
+                        leadingIcon = { Icon(Icons.Default.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = onToggleOldPassword) {
                                 Icon(
-                                    if (showOldPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showOldPassword) "Sembunyikan" else "Tampilkan"
+                                    imageVector = if (showOldPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null
                                 )
                             }
                         },
@@ -175,22 +206,22 @@ fun ChangePasswordContent(
                         label = { Text("Password Baru") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = {
-                            Icon(Icons.Default.Lock, contentDescription = null)
-                        },
+                        leadingIcon = { Icon(Icons.Default.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = onToggleNewPassword) {
                                 Icon(
-                                    if (showNewPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showNewPassword) "Sembunyikan" else "Tampilkan"
+                                    imageVector = if (showNewPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null
                                 )
                             }
                         },
                         visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        isError = newPassword.isNotEmpty() && newPassword.length < 6,
+                        isError = (newPassword.isNotEmpty() && newPassword.length < 6) || isSameAsOld,
                         supportingText = {
                             if (newPassword.isNotEmpty() && newPassword.length < 6) {
                                 Text("Password minimal 6 karakter")
+                            } else if (isSameAsOld) {
+                                Text("Password baru tidak boleh sama dengan password lama")
                             }
                         }
                     )
@@ -201,14 +232,12 @@ fun ChangePasswordContent(
                         label = { Text("Konfirmasi Password Baru") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = {
-                            Icon(Icons.Default.Lock, contentDescription = null)
-                        },
+                        leadingIcon = { Icon(Icons.Default.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = onToggleConfirmPassword) {
                                 Icon(
-                                    if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showConfirmPassword) "Sembunyikan" else "Tampilkan"
+                                    imageVector = if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null
                                 )
                             }
                         },
@@ -216,74 +245,37 @@ fun ChangePasswordContent(
                         isError = confirmPassword.isNotEmpty() && newPassword != confirmPassword,
                         supportingText = {
                             if (confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
-                                Text("Password tidak cocok")
+                                Text("Konfirmasi password tidak cocok")
                             }
                         }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                )
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = "Tips Password Aman",
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = "• Minimal 6 karakter",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "• Gunakan kombinasi huruf dan angka",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "• Jangan gunakan password yang sama dengan akun lain",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 4.dp))
+                    Text(text = "• Panjang minimal kata sandi adalah 6 karakter", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "• Gunakan variasi kombinasi huruf unik dan angka", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "• Dilarang menggunakan password lama kembali demi keamanan", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = onSave,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading &&
-                        oldPassword.isNotBlank() &&
-                        newPassword.isNotBlank() &&
-                        newPassword == confirmPassword &&
-                        newPassword.length >= 6
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = Color.White
-                    )
-                } else {
-                    Icon(Icons.Default.Lock, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Simpan Password Baru")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
