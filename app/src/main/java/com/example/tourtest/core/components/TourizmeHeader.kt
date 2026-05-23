@@ -44,7 +44,6 @@ public fun TourizmeSimpleHeader(
 
     TopAppBar(
         title = {
-//            Text(text = title, fontWeight = FontWeight.Bold)
             if (isSearchActive) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().height(48.dp).padding(end = 8.dp),
@@ -69,7 +68,7 @@ public fun TourizmeSimpleHeader(
                 }
             } else {
                 Text(
-                    text = "Toruizme",
+                    text = "Tourizme",
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
