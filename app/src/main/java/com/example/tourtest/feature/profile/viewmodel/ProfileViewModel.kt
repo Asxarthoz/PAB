@@ -56,17 +56,19 @@ class ProfileViewModel(
         }
     }
 
-    fun updateProfile(name: String, nickName: String, email: String) {
+    suspend fun updateProfile(userId: String, name: String, nickName: String, email: String) {
         viewModelScope.launch {
-            val success = profileManager.updateProfile(name, nickName, email)
+            val success = profileManager.updateProfile(userId, name, nickName, email)
             _updateSuccess.value = success
             if (!success) {
                 _error.value = profileManager.error.value
+            } else {
+                _currentUser.value = profileManager.userState.value
             }
         }
     }
 
-    fun saveProfileImage(bitmap: Bitmap) {
+    suspend fun saveProfileImage(bitmap: Bitmap) {
         viewModelScope.launch(Dispatchers.IO) {
             val path = profileManager.saveProfileImage(bitmap)
             path?.let {
@@ -75,7 +77,7 @@ class ProfileViewModel(
         }
     }
 
-    fun deleteProfileImage() {
+    suspend fun deleteProfileImage() {
         viewModelScope.launch {
             profileManager.deleteProfileImage()
             _profileBitmap.value = null
