@@ -290,7 +290,7 @@ fun ComposeApp() {
                         entry<Routes.FullScreenImageRoute> {
                             FullScreenImageScreen(
                                 onBack = { backStack.removeLastOrNull() },
-                                imageBitmap = null
+                                viewModel = profileViewModel
                             )
                         }
 
