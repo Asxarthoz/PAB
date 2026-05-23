@@ -53,6 +53,7 @@ class ProfileManager(
     }
 
     suspend fun updateProfile(
+        userId: String,
         name: String,
         nickName: String,
         email: String
@@ -88,6 +89,15 @@ class ProfileManager(
         }
 
         return try {
+            val currentUser = _userState.value ?: withContext(Dispatchers.IO) {
+                AuthManager.getUserById(context, userId)
+            }
+
+            if (currentUser == null) {
+                _error.value = "User tidak ditemukan di database"
+                return false
+            }
+
             val updatedUser = currentUser.copy(
                 name = name,
                 nickName = nickName,
