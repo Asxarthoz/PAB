@@ -129,7 +129,9 @@ fun ProfileContent(
                                 .size(100.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable { if (profileBitmap != null) onImageClick() },
+                                .clickable { profileBitmap?.let { bitmap ->
+                                    onImageClick() }
+                                           },
                             contentAlignment = Alignment.Center
                         ) {
                             if (profileBitmap != null) {
