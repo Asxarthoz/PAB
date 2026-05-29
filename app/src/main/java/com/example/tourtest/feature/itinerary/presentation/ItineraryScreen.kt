@@ -207,13 +207,11 @@ fun ItineraryScreen(
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
     var itinerariedIds by remember { mutableStateOf(setOf<String>()) }
 
-    // State Alert
     var showDeleteItineraryDialog by remember { mutableStateOf(false) }
-    var selectedItineraryId by remember { mutableStateOf<String?>(null) }
     var selectedItinerary by remember { mutableStateOf<ItineraryWithDestination?>(null) }
+
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationId by remember { mutableStateOf<String?>(null) }
-
     var selectedDestinationForReschedule by remember { mutableStateOf<Destination?>(null) }
 
     fun refreshStatus() {
@@ -257,16 +255,20 @@ fun ItineraryScreen(
         show = showDeleteItineraryDialog,
         message = "Yakin hapus destinasi dari daftar rencana?",
         onConfirm = {
-            selectedItineraryId?.let { id ->
-                viewModel.loadItineraries()
+            selectedItinerary?.let { item ->
+                viewModel.removeFromItinerary(
+                    itineraryId = item.itinerary.id,
+                    date = item.itinerary.date
+                )
+
                 refreshStatus()
                 Toast.makeText(context, "Berhasil dihapus dari rencana", android.widget.Toast.LENGTH_SHORT).show()
             }
             showDeleteItineraryDialog = false
-            selectedItineraryId = null
+            selectedItinerary = null
         }, onDismiss = {
             showDeleteItineraryDialog = false
-            selectedItineraryId = null
+            selectedItinerary  = null
         }
     )
 
@@ -310,7 +312,6 @@ fun ItineraryScreen(
                         selectedDestinationId = destination.id
                         showDeleteFavoriteDialog = true
                     } else {
-//                    viewModel.addToFavorite(destination.id)
                         FavoriteManager.addDestination(context, currentUserId, destination.id)
                         favoriteIds = favoriteIds + destination.id
                         Toast.makeText(context, "Disimpan ke favorit", Toast.LENGTH_SHORT).show()
