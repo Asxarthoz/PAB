@@ -210,8 +210,7 @@ fun HomepageScreen(
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val filteredDestinations by viewModel.filteredDestinations.collectAsStateWithLifecycle()
-    val isSearchActive by viewModel.isSearchActive.collectAsStateWithLifecycle() // Pakai yang ini
-//    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isSearchActive by viewModel.isSearchActive.collectAsStateWithLifecycle()
 
     val greeting = remember { viewModel.getGreeting() }
     val userName = remember(currentUserId) {
@@ -313,7 +312,6 @@ fun HomepageScreen(
         searchQuery = searchQuery,
         isSearchActive = isSearchActive,
         listState = listState,
-//        currentUserId = currentUserId,
         filteredDestinations = filteredDestinations,
         favoriteIds = favoriteIds,
         itinerariedIds = itinerariedIds,
@@ -345,7 +343,6 @@ fun HomepageScreen(
                 showLoginPromptDialog = true
             } else {
                 selectedDestinationForItinerary = destination
-
             }
         },
         onClick = { destination -> onNavigateToDetail(destination.id) }
@@ -362,7 +359,6 @@ fun HomepagePreview(@PreviewParameter(DestinationProvider::class) destinations: 
             searchQuery = "",
             isSearchActive = false,
             listState = rememberLazyListState(),
-//            currentUserId = "123",
             filteredDestinations = destinations,
             favoriteIds = setOf(),
             itinerariedIds = setOf(),

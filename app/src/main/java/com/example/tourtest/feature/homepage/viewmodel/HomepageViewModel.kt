@@ -1,22 +1,27 @@
 package com.example.tourtest.feature.homepage.viewmodel
 
-import android.app.Application
+import android.content.Context
 import android.content.SharedPreferences
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.tourtest.core.data.UserSession
+import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.model.Destination
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Named
 
-class HomepageViewModel(
-    application: Application,
-    private val getAllDestinations: () -> List<Destination>,
-    private val sharedPrefs: SharedPreferences,
-) :AndroidViewModel(application) {
+@HiltViewModel
+class HomepageViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val homepageManager: HomepageManager,
+    @Named("HomePrefs") private val sharedPrefs: SharedPreferences,
+) :ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -35,25 +40,29 @@ class HomepageViewModel(
         loadDestinations()
     }
 
-    fun loadDestinations() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val data = getAllDestinations()
-            _allDestinations.value = data
-
-            if(_searchQuery.value.isNotBlank()) {
-                filterDestinations()
-            } else {
-                _filteredDestinations.value = data
-            }
-            _isLoading.value = false
-        }
-    }
-
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
-        sharedPrefs.edit().putString("last_search_query", query).apply()
+        sharedPrefs.edit().putString("home_search_prefs", query).apply()
         filterDestinations()
+    }
+
+    fun loadDestinations() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoading.value = true
+            try {
+                val data = homepageManager.readDestinationsFromData(context)
+                _allDestinations.value = data
+
+                if (_searchQuery.value.isNotBlank()) {
+                    filterDestinations()
+                } else {
+                    _filteredDestinations.value = data
+                }
+            } catch (e: Exception) {
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     fun toggleSearchActive() {
