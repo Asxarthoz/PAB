@@ -8,24 +8,29 @@ import androidx.core.app.NotificationCompat
 import com.example.tourtest.feature.notification.manager.NotificationManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.notification.dataaccess.NotificationDao
 import com.example.tourtest.model.NotificationEntity
 import com.example.tourtest.model.NotificationHistory
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 
-class NotificationViewModel(
+@HiltViewModel
+class NotificationViewModel @Inject constructor(
     application: Application,
-    private val userId: String,
+    private val userSession: UserSession,
     private val notificationDao: NotificationDao,
     private val itineraryManager: ItineraryManager,
     private val notificationManager: NotificationManager,
@@ -34,28 +39,33 @@ class NotificationViewModel(
     private val context = getApplication<Application>().applicationContext
     private val CHANNEL_ID = "tourizme_reminders"
 
-    val notification: StateFlow<List<NotificationHistory>> = notificationDao.getNotificationsByUser(userId)
-        .map { entities ->
-            entities.map { entity ->
-                NotificationHistory(
-                    id = entity.id,
-                    message = entity.message,
-                    destinationId = entity.destinationId,
-                    timestamp = entity.timestamp,
-                    isRead = entity.isRead
-                )
-            }
+    private val userIdFlow = userSession.userId
+
+    val notification: StateFlow<List<NotificationHistory>> = userIdFlow.flatMapLatest { uid ->
+        notificationDao.getNotificationsByUser(uid ?: "GUEST")
+    }.map { entities ->
+        entities.map { entity ->
+            NotificationHistory(
+                id = entity.id,
+                message = entity.message,
+                destinationId = entity.destinationId,
+                timestamp = entity.timestamp,
+                isRead = entity.isRead
+            )
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     init {
         createNotificationChannel()
-        if (userId != "GUEST") {
-            loadNotifications()
+        viewModelScope.launch {
+            val currentUserId = userSession.userId.firstOrNull() ?: "GUEST"
+            if (currentUserId != "GUEST") {
+                loadNotifications()
+            }
         }
     }
 
@@ -87,10 +97,12 @@ class NotificationViewModel(
     }
 
     fun loadNotifications() {
-        if (userId == "GUEST") return
 
         viewModelScope.launch {
-            val allItineraries = itineraryManager.getItineraryByUser(context, userId)
+            val currentUserId = userSession.userId.firstOrNull() ?: "GUEST"
+            if (currentUserId == "GUEST") return@launch
+
+            val allItineraries = itineraryManager.getItineraryByUser(context, currentUserId)
             val allDestination = homepageManager.readDestinationsFromData(context)
 
             allItineraries.forEach { itinerary ->
@@ -104,22 +116,19 @@ class NotificationViewModel(
                     if (message != null) {
                         // Unique ID based on user, destination and message content to avoid duplicates
                         val reminderKey = message.split(":")[0] // e.g., "H-7", "6 Jam Lagi"
-                        val uniqueID = "${userId}_${itinerary.destinationId}_$reminderKey"
+                        val uniqueID = "${currentUserId}_${itinerary.destinationId}_$reminderKey"
                         
                         val entity = NotificationEntity(
                             id = uniqueID,
-                            userId = userId,
+                            userId = currentUserId,
                             message = message,
                             destinationId = itinerary.destinationId,
                             timestamp = System.currentTimeMillis()
                         )
                         
-                        // Check if already notified to avoid spamming system notifications
-                        // In a real app, we'd check if this specific reminder was already sent
+
                         notificationDao.insertNotification(entity)
-                        
-                        // Optional: Trigger system notification if it's new
-                        // (Simplified logic for this project context)
+
                         showSystemNotification(
                             id = uniqueID.hashCode(),
                             title = "Pengingat Perjalanan",
