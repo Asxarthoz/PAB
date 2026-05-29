@@ -64,8 +64,6 @@ fun AuthContent(
     onTogglePasswordVisibility: () -> Unit,
     onGuestLogin: () -> Unit
 ){
-    val context = LocalContext.current
-
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
@@ -276,7 +274,7 @@ fun AuthScreen(
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel.loginSucces) {
         viewModel.loginSucces.collect {
             onLoginSuccess()
         }

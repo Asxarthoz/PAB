@@ -1,23 +1,27 @@
 package com.example.tourtest.feature.auth.viewmodel
 
-import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.auth.manager.AuthManager
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class AuthViewModel(
-    application: Application
-) : AndroidViewModel(application) {
-    private val context = getApplication<Application>().applicationContext
-    private val userSession = UserSession(context)
-
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val userSession: UserSession
+) : ViewModel() {
     var isLogin by mutableStateOf(true)
     var name by mutableStateOf("")
     var nickname by mutableStateOf("")
@@ -28,14 +32,8 @@ class AuthViewModel(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
-    private val _loginSuccess = MutableSharedFlow<Unit>()
-    val loginSucces = _loginSuccess.asSharedFlow()
-
-    init {
-        viewModelScope.launch {
-            AuthManager.initializeDataFromAssets(context)
-        }
-    }
+    private val _loginSuccess = Channel<Unit>(Channel.BUFFERED)
+    val loginSucces = _loginSuccess.receiveAsFlow()
 
     fun toggleMode() {
         isLogin = !isLogin
@@ -58,13 +56,21 @@ class AuthViewModel(
         isLoading = true
         errorMessage = null
 
-        viewModelScope.launch {
-            AuthManager.setCurrentUser("GUEST")
-            userSession.saveSession("GUEST")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                AuthManager.setCurrentUser("GUEST")
+                userSession.saveSession("GUEST")
 
-            _loginSuccess.emit(Unit)
-
-            isLoading = false
+                _loginSuccess.send(Unit)
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    errorMessage = e.localizedMessage
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                }
+            }
         }
     }
 
@@ -72,16 +78,24 @@ class AuthViewModel(
         isLoading = true
         errorMessage = null
 
-        viewModelScope.launch {
-            if (isLogin) {
-                performLogin()
-            } else {
-                performRegister()
+        viewModelScope.launch(Dispatchers.IO){
+            try {
+                if (isLogin) {
+                    performLogin()
+                } else {
+                    performRegister()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    errorMessage = "Terjadi kesalahan: ${e.localizedMessage}"
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                }
             }
-            isLoading = false
         }
     }
-
 
     private suspend fun performLogin() {
         if (emailOrNickname.isBlank()) {
@@ -99,7 +113,7 @@ class AuthViewModel(
             user?.let {
                 AuthManager.setCurrentUser(it.id)
                 userSession.saveSession(it.id)
-                _loginSuccess.emit(Unit)
+                _loginSuccess.send(Unit)
             } ?: run {
                 errorMessage = "Gagal mengambil data user"
             }
@@ -145,8 +159,7 @@ class AuthViewModel(
                             AuthManager.setCurrentUser(it.id)
                             userSession.saveSession(it.id)
                         }
-                        _loginSuccess.emit(Unit)
-//                        onLoginSuccess()
+                        _loginSuccess.send(Unit)
                     } else {
                         errorMessage = "Registrasi berhasil, silakan login"
                         isLogin = true
@@ -161,6 +174,5 @@ class AuthViewModel(
                 }
             }
         }
-//        isLoading = false
     }
 }
