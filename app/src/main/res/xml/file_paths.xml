@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+<!--    <files-path name="my_images" path="Pictures/" />-->
+<!--    <cache-path name="my_cache" path="." />-->
+<!--    <files-path name="images" path="images/" />-->
+    <files-path name="internal_images" path="." />
     <files-path name="my_images" path="Pictures/" />
-    <cache-path name="my_cache" path="." />
     <files-path name="images" path="images/" />
+
+    <cache-path name="my_cache" path="." />
+
+    <external-files-path name="external_images" path="." />
+    <external-files-path name="external_pictures" path="Pictures/" />
+
+    <external-cache-path name="external_cache" path="." />
 </paths>
