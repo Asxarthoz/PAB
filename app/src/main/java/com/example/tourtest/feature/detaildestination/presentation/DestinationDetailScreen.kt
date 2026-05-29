@@ -283,7 +283,7 @@ fun DestinationDetailScreen(
             if (currentUserId == "GUEST" || currentUserId.isBlank()) {
                 showLoginPromptDialog = true
             } else {
-                showDatePicker = true
+                selectedDestinationForItinerary = destination
             } },
         onOpenMaps = openMaps
     )
