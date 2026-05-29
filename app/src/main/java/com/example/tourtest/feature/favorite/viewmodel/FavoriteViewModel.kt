@@ -1,15 +1,17 @@
 package com.example.tourtest.feature.favorite.viewmodel
 
-import android.app.Application
+import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.model.Destination
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,14 +20,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Named
 
-class FavoriteViewModel(
-    application: Application,
+@HiltViewModel
+class FavoriteViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val favoriteManager: FavoriteManager,
     private val homepageManager: HomepageManager,
-    private val sharedPrefs: SharedPreferences,
+    @Named("FavoritePrefs") private val sharedPrefs: SharedPreferences,
     private val userSession: UserSession
-) : AndroidViewModel(application) {
+) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -49,7 +54,6 @@ class FavoriteViewModel(
         initialValue = emptyList()
     )
 
-    private val context = getApplication<Application>().applicationContext
     private val _favoriteIds = MutableStateFlow<Set<String>>(emptySet())
     val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
 
@@ -71,7 +75,7 @@ class FavoriteViewModel(
     }
 
     fun loadFavorite() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO){
             _isLoading.value = true
             _error.value = null
 
@@ -80,7 +84,6 @@ class FavoriteViewModel(
                 val currentUserId = currentUserIdFromStore ?: ""
                 Log.d("FAVORITE_DEBUG", "currentUserId: $currentUserId")
 
-                // Mengasumsikan nama method di manager juga sudah disesuaikan atau tetap dipanggil
                 val favoritesData = favoriteManager.getAllFavorite(context)
                 val favoriteIds = favoritesData.filter { it.userId == currentUserId }.map { it.destinationId }.toSet()
                 _favoriteIds.value = favoriteIds
@@ -98,9 +101,10 @@ class FavoriteViewModel(
     }
 
     fun addToFavorite(destinationId: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                val currentUserIdFromStore = userSession.userId.firstOrNull()
+                val currentUserId = currentUserIdFromStore ?: ""
                 val success = favoriteManager.addDestination(context, currentUserId, destinationId)
                 if (success) {
                     _favoriteIds.value = _favoriteIds.value + destinationId
@@ -117,9 +121,10 @@ class FavoriteViewModel(
     }
 
     fun removeFromFavorite(destinationId: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val currentUserId = AuthManager.getCurrentUserId() ?: ""
+                val currentUserIdFromStore = userSession.userId.firstOrNull()
+                val currentUserId = currentUserIdFromStore ?: ""
                 val success = favoriteManager.removeDestination(context, currentUserId, destinationId)
                 if (success) {
                     _favoriteIds.value = _favoriteIds.value - destinationId
