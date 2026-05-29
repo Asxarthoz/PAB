@@ -1,34 +1,38 @@
 package com.example.tourtest.feature.itinerary.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.content.SharedPreferences
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.model.Destination
 import com.example.tourtest.model.ItineraryWithDestination
-import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import android.util.Log
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Named
 
-
-class ItineraryViewModel(
-    application: Application,
+@HiltViewModel
+class ItineraryViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val itineraryManager: ItineraryManager,
     private val homepageManager: HomepageManager,
-    private val sharedPrefs: SharedPreferences,
+    @Named("ItineraryPrefs") private val sharedPrefs: SharedPreferences,
     private val userSession: UserSession
-) : AndroidViewModel(application) {
+) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -52,7 +56,6 @@ class ItineraryViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyMap()
     )
-    private val context = getApplication<Application>().applicationContext
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -71,14 +74,13 @@ class ItineraryViewModel(
     }
 
     fun loadItineraries() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             _error.value = null
 
             try {
-                val currentUserIdFromStore = userSession.userId.firstOrNull()
-                val currentUserId = currentUserIdFromStore ?: ""
-                android.util.Log.d("ITINERARY_DEBUG", "currentUserId: $currentUserId")
+                val currentUserId = userSession.userId.firstOrNull() ?: ""
+                Log.d("ITINERARY_DEBUG", "currentUserId: $currentUserId")
 
                 val itineraries = itineraryManager.getItineraryByUser(context, currentUserId)
                 val allDestinations = homepageManager.readDestinationsFromData(context)
@@ -101,10 +103,14 @@ class ItineraryViewModel(
     }
 
     fun removeFromItinerary(itineraryId: String, date: String) {
-        viewModelScope.launch {
-            val success = itineraryManager.removeDestination(context, itineraryId)
-            if (success) {
-                _allItineraryList.value = _allItineraryList.value.filter { it.itinerary.id != itineraryId }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val success = itineraryManager.removeDestination(context, itineraryId)
+                if (success) {
+                    _allItineraryList.value = _allItineraryList.value.filter { it.itinerary.id != itineraryId }
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
             }
         }
     }
