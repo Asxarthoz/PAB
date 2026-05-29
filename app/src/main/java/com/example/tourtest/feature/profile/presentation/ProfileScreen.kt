@@ -1,6 +1,5 @@
 package com.example.tourtest.feature.profile.presentation
 
-import android.R
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,7 +23,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -38,7 +36,6 @@ import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.model.Users
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +104,6 @@ fun ProfileContent(
             currentUser != null -> {
                 val user = currentUser
 
-                // KURUNG BUKA COLUMN UTAMA
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -116,7 +112,6 @@ fun ProfileContent(
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // --- SECTION 1: HEADER PROFIL ---
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -265,7 +260,6 @@ fun ProfileContent(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // --- SECTION 4: LOGOUT BUTTON ---
                     Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                         Button(
                             onClick = onLogoutClick,
@@ -346,19 +340,18 @@ fun ProfileScreen(
     val context = LocalContext.current
     val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
     val currentUserId = currentUserIdFromStore ?: "GUEST"
+
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUserIdFromStore) {
-        if (currentUserId != null && currentUserId!= "GUEST") {
-            val startTime = System.currentTimeMillis()
-            viewModel.loadUser(currentUserId)
-            val elapsed = System.currentTimeMillis() - startTime
-            if (elapsed < 500) {
-                delay(500 - elapsed)
+        currentUserIdFromStore?.let { id ->
+            if (id != "GUEST" && id.isNotBlank()) {
+                viewModel.loadUser(id)
             }
         }
     }
@@ -392,7 +385,7 @@ fun ProfileScreen(
 
     if (currentUserId == "GUEST" || currentUserId.isBlank()) {
         ProfileGuestContent(
-            onBack = onLogout,
+            onBack = onBack,
             onNavigateToLogin = onLogout
         )
     } else {
@@ -420,7 +413,6 @@ fun ProfileRowItem(label: String, value: String, icon: ImageVector) {
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-//            modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {

@@ -47,7 +47,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tourtest.core.data.UserSession
+import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.model.Users
 import kotlinx.coroutines.launch
 
@@ -284,39 +286,29 @@ fun EditProfileContent(
 fun EditProfileScreen(
     onBack: () -> Unit,
     userSession: UserSession,
-    profileManager: ProfileManager
+    viewModel: ProfileViewModel
 ) {
     Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")
 
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
-    val currentUser by profileManager.userState.collectAsStateWithLifecycle()
-    val isLoading by profileManager.isLoading.collectAsStateWithLifecycle()
-    val error by profileManager.error.collectAsStateWithLifecycle()
-    val updateSuccess by profileManager.updateSuccess.collectAsStateWithLifecycle()
-    val profileImagePath by profileManager.profileImagePath.collectAsStateWithLifecycle()
-
-//    var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
-//    var nickName by remember(currentUser) { mutableStateOf(currentUser?.nickName ?: "") }
-//    var email by remember(currentUser) { mutableStateOf(currentUser?.email ?: "") }
-//    var showImagePickerDialog by remember { mutableStateOf(false) }
-//    var isSaving by rememberSaveable { mutableStateOf(false) }
-//
-//    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
-//    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val updateSuccess by viewModel.updateSuccess.collectAsStateWithLifecycle()
+    val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
 
     var name by remember { mutableStateOf("") }
     var nickName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var isSaving by rememberSaveable { mutableStateOf(false) }
-    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
 
     LaunchedEffect(currentUserIdFromStore) {
-        val currentUserId = currentUserIdFromStore
-        if (currentUserId != null && currentUserId != "GUEST" && currentUserId.isNotBlank()) {
-            profileManager.loadUserFromFile(currentUserId)
+        currentUserIdFromStore?.let { userId ->
+            if (userId != "GUEST" && userId.isNotBlank()) {
+                viewModel.loadUser(userId)
+            }
         }
     }
 
@@ -328,18 +320,14 @@ fun EditProfileScreen(
         }
     }
 
-    LaunchedEffect(profileImagePath) {
-        if (profileImagePath != null) {
-            profileBitmap = profileManager.loadProfileImage(profileImagePath)
-        }
-    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
             Log.d("ProfileDebug", "Foto berhasil: ${bitmap.width}x${bitmap.height}")
-            profileBitmap = bitmap
+//            profileBitmap = bitmap
+            viewModel.onProfileBitmapChanged(bitmap)
             Toast.makeText(context, "Foto berhasil diambil", Toast.LENGTH_SHORT).show()
         } else {
             Log.d("ProfileDebug", "Gagal ambil foto")
@@ -353,15 +341,11 @@ fun EditProfileScreen(
         uri?.let {
             val bitmap = context.contentResolver.openInputStream(it)
                 ?.use { inputStream -> BitmapFactory.decodeStream(inputStream) }
-            profileBitmap = bitmap
-            Toast.makeText(context, "Foto berhasil dipilih", Toast.LENGTH_SHORT).show()
+            if (bitmap != null) {
+                viewModel.onProfileBitmapChanged(bitmap)
+                Toast.makeText(context, "Foto berhasil dipilih", Toast.LENGTH_SHORT).show()
+            }
         }
-    }
-
-    fun createImageFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val imageFileName = "JPEG_${timeStamp}_"
-        return File.createTempFile(imageFileName, ".jpg", context.cacheDir)
     }
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -376,8 +360,8 @@ fun EditProfileScreen(
 
     DisposableEffect(Unit) {
         onDispose {
-            profileManager.clearError()
-            profileManager.resetUpdateSuccess()
+            viewModel.clearError()
+            viewModel.resetUpdateSuccess()
         }
     }
 
@@ -395,54 +379,29 @@ fun EditProfileScreen(
         profileBitmap = profileBitmap,
         currentUser = currentUser,
         isLoading = isLoading,
-        isSaving = isSaving,
+        isSaving = isLoading,
         error = error,
         onNameChange = { name = it},
         onNickNameChange = { nickName = it },
         onEmailChange = { email = it },
         onBack = onBack,
         onSave = {
-            if (!isSaving) {
+            if (!isLoading) {
                 val userId = currentUserIdFromStore ?: "GUEST"
                 if (userId != null || userId != "GUEST") {
-                    scope.launch {
-                        isSaving = true
-                        try {
-                            profileBitmap?.let { bitmap ->
-                                val savedPath = profileManager.saveProfileImage(bitmap)
-                                if (savedPath != null) {
-                                    profileManager.updateProfileImagePath(savedPath)
-                                    Toast.makeText(
-                                        context,
-                                        "Foto berhasil disimpan",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                        .show()
-                                }
-                            }
-
-                            profileManager.updateProfile(
-                                userId = userId,
-                                name = name,
-                                nickName = nickName,
-                                email = email
-                            )
-                        } catch (e: Exception) {
-                            Log.e("ProfileDebug", "Save error", e)
-                        } finally {
-                            isSaving = false
-                        }
-                    }
+                    viewModel.saveAndUpdateProfile(
+                        userId = userId,
+                        name = name,
+                        nickName = nickName,
+                        email = email,
+                        bitmap = profileBitmap
+                    )
                 }
-
             }
         },
         onDeletePhoto = {
-            scope.launch {
-                profileManager.deleteProfileImage()
-                profileBitmap = null
-                Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
-            }
+            viewModel.deleteProfileImage()
+            Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
         },
         onCameraClick = {
             requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)        },
@@ -450,7 +409,7 @@ fun EditProfileScreen(
             galleryLauncher.launch("image/*")
         },
         onClearError = {
-            profileManager.clearError()
+            viewModel.clearError()
         }
     )
 }

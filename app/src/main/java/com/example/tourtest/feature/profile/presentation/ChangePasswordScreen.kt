@@ -27,11 +27,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.tourtest.feature.profile.manager.PasswordManager
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.tourtest.feature.auth.presentation.AuthFormState
+import com.example.tourtest.feature.profile.viewmodel.ChangePasswordViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,7 +143,6 @@ fun ChangePasswordContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- SECTION ALERTER ERROR ---
             Text(
                 text = "Form Perubahan Sandi",
                 fontSize = 14.sp,
@@ -172,7 +169,7 @@ fun ChangePasswordContent(
                 }
             }
 
-            // --- SECTION INPUT FIELDS (Gaya Kartu Selaras) ---
+
             Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -284,14 +281,14 @@ fun ChangePasswordContent(
 @Composable
 fun ChangePasswordScreen(
     onBack: () -> Unit,
-    passwordManager: PasswordManager
+    viewModel: ChangePasswordViewModel
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val isLoading by passwordManager.isLoading.collectAsStateWithLifecycle()
-    val isSuccess by passwordManager.isSuccess.collectAsStateWithLifecycle()
-    val error by passwordManager.error.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isSuccess by viewModel.isSuccess.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
 
     var oldPassword by rememberSaveable { mutableStateOf("") }
     var newPassword by rememberSaveable { mutableStateOf("") }
@@ -301,12 +298,12 @@ fun ChangePasswordScreen(
     var showConfirmPassword by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        passwordManager.loadCurrentUser()
+        viewModel.loadCurrentUser()
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            passwordManager.resetState()
+            viewModel.resetState()
         }
     }
 
@@ -331,19 +328,14 @@ fun ChangePasswordScreen(
         onToggleOldPassword = { showOldPassword = !showOldPassword },
         onToggleNewPassword = { showNewPassword = !showNewPassword },
         onToggleConfirmPassword = { showConfirmPassword = !showConfirmPassword },
-        onClearError = { passwordManager.clearError() },
+        onClearError = { viewModel.clearError() },
         onBack = onBack,
         onSave = {
-            scope.launch {
-                val result = passwordManager.changePassword(
-                    oldPassword = oldPassword,
-                    newPassword = newPassword,
-                    confirmPassword = confirmPassword
-                )
-                if (result) {
-                    Toast.makeText(context, "Password berhasil diubah", Toast.LENGTH_SHORT).show()
-                }
-            }
+            viewModel.changePassword(
+                oldPassword = oldPassword,
+                newPassword = newPassword,
+                confirmPassword = confirmPassword
+            )
         }
     )
 }
