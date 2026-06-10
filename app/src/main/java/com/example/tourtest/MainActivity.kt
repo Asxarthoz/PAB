@@ -2,14 +2,17 @@ package com.example.tourtest
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.example.tourtest.core.ComposeApp
 import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.ui.theme.TourizmeBlueMain
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -24,7 +27,12 @@ class MainActivity : ComponentActivity() {
         splashScreen.setKeepOnScreenCondition { keepSplashScreen }
 
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                scrim = TourizmeBlueMain.toArgb(),
+                darkScrim = TourizmeBlueMain.toArgb()
+            )
+        )
 
         lifecycleScope.launch(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
