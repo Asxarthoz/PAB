@@ -1,10 +1,15 @@
 package com.example.tourtest.feature.notification.presentation
 
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,18 +40,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import android.Manifest
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.TourizmeEmptyState
-import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.auth.manager.AuthManager
 import com.example.tourtest.feature.notification.viewmodel.NotificationViewModel
 import com.example.tourtest.model.NotificationHistory
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeBlueMain
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,18 +65,22 @@ fun NotificationContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notifikasi", fontWeight = FontWeight.Bold) },
+                title = { Text("Notifikasi", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Kembali"
+                            contentDescription = "Kembali",
+                            tint = Color.White
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                    containerColor = TourizmeBlueMain,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                ),
+                windowInsets = WindowInsets(0.dp)
             )
         }
     ) { paddingValues ->
@@ -99,13 +110,22 @@ fun NotificationGuestContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notifikasi", fontWeight = FontWeight.Bold) },
+                title = { Text("Notifikasi", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 24.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Kembali",
+                            tint = Color.White
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TourizmeBlueMain,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                ),
+                windowInsets = WindowInsets(0.dp)
             )
         }
     ) { paddingValues ->
@@ -149,7 +169,7 @@ fun NotificationItem(
             Icon(
                 imageVector = Icons.Default.Notifications,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = TourizmeBlueMain,
                 modifier = Modifier.size(32.dp)
             )
 
@@ -159,6 +179,7 @@ fun NotificationItem(
                 Text(
                     text = notification.message,
                     fontSize = 14.sp,
+                    fontFamily = MontserratFontFamily,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -167,6 +188,8 @@ fun NotificationItem(
 
                 Text(
                     text = "Pengingat Perjalanan",
+                    fontFamily = MontserratFontFamily,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 11.sp,
                     color = Color.Gray
                 )
@@ -187,9 +210,30 @@ fun NotificationScreen(
     val currentUserId = userIdFromStore?: "GUEST"
     val isGuest = currentUserId == null || currentUserId == "GUEST"
 
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract  = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            if (!isGuest) {
+                viewModel.loadNotifications()
+            }
+        } else {
+            Toast.makeText(
+                context,
+                "Izin ditolak. Anda tidak akan menerima banner pengingat perjalanan kecuali izin dinyalakan.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     LaunchedEffect(Unit) {
-        if (!isGuest) {
-            viewModel.loadNotifications()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            if (!isGuest) {
+                viewModel.loadNotifications()
+            }
         }
     }
 

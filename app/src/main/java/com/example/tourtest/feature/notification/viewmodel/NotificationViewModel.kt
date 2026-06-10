@@ -1,24 +1,20 @@
 package com.example.tourtest.feature.notification.viewmodel
 
-import android.app.Application
-import android.app.NotificationChannel
-import android.app.NotificationManager as AndroidNotificationManager
-import android.os.Build
-import androidx.core.app.NotificationCompat
+import android.content.Context
 import com.example.tourtest.feature.notification.manager.NotificationManager
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.homepage.manager.HomepageManager
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.notification.dataaccess.NotificationDao
+import com.example.tourtest.feature.notification.manager.NotificationHelper
 import com.example.tourtest.model.NotificationEntity
 import com.example.tourtest.model.NotificationHistory
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -29,16 +25,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NotificationViewModel @Inject constructor(
-    application: Application,
+    @ApplicationContext private val context: Context,
     private val userSession: UserSession,
     private val notificationDao: NotificationDao,
     private val itineraryManager: ItineraryManager,
     private val notificationManager: NotificationManager,
-    private val homepageManager: HomepageManager
-): AndroidViewModel(application) {
-    private val context = getApplication<Application>().applicationContext
-    private val CHANNEL_ID = "tourizme_reminders"
-
+    private val homepageManager: HomepageManager,
+    private val notificationHelper: NotificationHelper
+): ViewModel() {
     private val userIdFlow = userSession.userId
 
     val notification: StateFlow<List<NotificationHistory>> = userIdFlow.flatMapLatest { uid ->
@@ -60,40 +54,12 @@ class NotificationViewModel @Inject constructor(
     )
 
     init {
-        createNotificationChannel()
         viewModelScope.launch {
             val currentUserId = userSession.userId.firstOrNull() ?: "GUEST"
             if (currentUserId != "GUEST") {
                 loadNotifications()
             }
         }
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "TourIzme Reminders"
-            val descriptionText = "Notifications for trip reminders"
-            val importance = AndroidNotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager: AndroidNotificationManager =
-                context.getSystemService(AndroidNotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
-    private fun showSystemNotification(id: Int, title: String, message: String) {
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Replace with app icon
-            .setContentTitle(title)
-            .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-
-        val notificationManager: AndroidNotificationManager =
-            context.getSystemService(AndroidNotificationManager::class.java)
-        notificationManager.notify(id, builder.build())
     }
 
     fun loadNotifications() {
@@ -129,8 +95,9 @@ class NotificationViewModel @Inject constructor(
 
                         notificationDao.insertNotification(entity)
 
-                        showSystemNotification(
-                            id = uniqueID.hashCode(),
+                        notificationHelper.showSystemNotification(
+                            context = context,
+                            notificationId  = uniqueID.hashCode(),
                             title = "Pengingat Perjalanan",
                             message = message
                         )

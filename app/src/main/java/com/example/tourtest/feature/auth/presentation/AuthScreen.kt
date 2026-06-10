@@ -1,11 +1,19 @@
 package com.example.tourtest.feature.auth.presentation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -35,8 +43,30 @@ import androidx.compose.ui.unit.dp
 import com.example.tourtest.ui.theme.TourizmeTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
 import com.example.tourtest.feature.auth.viewmodel.AuthViewModel
+import com.example.tourtest.ui.theme.InterFontFamily
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeBgDark
+import com.example.tourtest.ui.theme.TourizmeBgDarkTop
+import com.example.tourtest.ui.theme.TourizmeBlueDark
+import com.example.tourtest.ui.theme.TourizmeBlueMain
+import com.example.tourtest.ui.theme.TourizmeHighlightGreen
+import com.example.tourtest.ui.theme.TourizmeSurfaceLight
+import com.example.tourtest.ui.theme.TourizmeTextPrimary
+import com.example.tourtest.ui.theme.TourizmeTextSecondary
 
 sealed class AuthFormState{
     data class Name(val value: String) : AuthFormState()
@@ -64,41 +94,100 @@ fun AuthContent(
     onTogglePasswordVisibility: () -> Unit,
     onGuestLogin: () -> Unit
 ){
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    val isDark = isSystemInDarkTheme()
+    val backgroundGradient = Brush.verticalGradient(
+        colors = if (isDark) {
+            listOf(TourizmeBgDarkTop, TourizmeBgDark)
+        } else {
+            listOf(TourizmeBlueMain, TourizmeBlueDark)
+        }
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundGradient)
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(paddingValues)
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(48.dp))
+//            Spacer(modifier = Modifier.height(144.dp))
+//
+//            Text(
+//                text = "TOURIZME",
+//                style = MaterialTheme.typography.headlineMedium.copy(
+//                    fontFamily = MontserratFontFamily,
+//                    fontWeight = FontWeight.Bold,
+//                    letterSpacing = 2.sp,
+//                    fontSize = 26.sp
+//                ),
+//                color = Color.White
+//            )
 
-            Text(
-                text = "Tourizme",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
+            if (isLogin) {
+                Spacer(modifier = Modifier.height(120.dp))
 
-            Text(
-                text = if (isLogin) "Masuk ke Akun Anda" else "Buat akun baru",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 16.dp)
-            )
+                Text(
+                    text = "TOURIZME",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = MontserratFontFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 2.sp,
+                        fontSize = 26.sp
+                    ),
+                    color = Color.White
+                )
 
+                Spacer(modifier = Modifier.height(64.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = "Selamat Datang",
+                        fontSize = 24.sp,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        fontFamily = InterFontFamily
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Silakan masuk untuk melanjutkan\npetualangan Anda.",
+                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontFamily = InterFontFamily
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            } else {
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Text(
+                    text = "TOURIZME",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = MontserratFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        fontSize = 26.sp
+                    ),
+                    color = Color.White
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+
+
+            // Banner Pesan Error Komponen (Jika validasi gagal)
             if (errorMessage != null) {
-                androidx.compose.material3.Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.small,
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.errorContainer
                 ) {
                     Text(
@@ -110,154 +199,333 @@ fun AuthContent(
                 }
             }
 
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (!isLogin) {
-                    TextField(
-                        value = name,
-                        onValueChange = { onStateChange(AuthFormState.Name(it)) },
-                        label = { Text("Nama lengkap") },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading,
-                        singleLine = true,
-                        isError = errorMessage?.contains("Nama") == true
-                    )
-
-                    TextField(
-                        value = nickname,
-                        onValueChange = { onStateChange(AuthFormState.Nickname(it)) },
-                        label = { Text("Nickname") },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading,
-                        singleLine = true,
-                        isError = errorMessage?.contains("Nickname") == true
-                    )
-                }
-
-                TextField(
-                    value = emailOrNickname,
-                    onValueChange = { onStateChange(AuthFormState.Email(it)) },
-                    label = {
-                        Text(
-                            if (isLogin) "Email atau Nickname"
-                            else "Alamat Email"
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    isError = errorMessage?.contains("Email") == true ||
-                            errorMessage?.contains("Nickname") == true
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
-
-                TextField(
-                    value = password,
-                    onValueChange = { onStateChange(AuthFormState.Password(it)) },
-                    label = { Text("Kata sandi") },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading,
-                    singleLine = true,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                        IconButton(onClick =  onTogglePasswordVisibility ) {
-                            Icon(imageVector = image, contentDescription = null)
-                        }
-                    },
-                    isError = errorMessage?.contains("password") == true
-                )
-
-                if (!isLogin) {
-                    TextField(
-                        value = confirmPassword,
-                        onValueChange = { onStateChange(AuthFormState.ConfirmPassword(it)) },
-                        label = { Text("Konfirmasi kata sandi") },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading,
-                        singleLine = true,
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        trailingIcon = {
-                            val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                            IconButton(onClick =  onTogglePasswordVisibility ) {
-                                Icon(imageVector = image, contentDescription = null)
-                            }
-                        },
-                        isError = errorMessage?.contains("Konfirmasi") == true ||
-                                (confirmPassword.isNotEmpty() && password != confirmPassword)
-                    )
-
-                    if (password.isNotEmpty() && password.length < 6) {
-                        Text(
-                            text = "Password minimal 6 karakter",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
-                    }
-
-                    if (confirmPassword.isNotEmpty() && password != confirmPassword) {
-                        Text(
-                            text = "Password tidak cocok",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } else {
-                    Button(
-                        onClick = onAuthClick,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(if (isLogin) "Masuk" else "Daftar")
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Button(
-                        onClick = onGuestLogin,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "Masuk Sebagai Tamu")
-                    }
-                }
-
-                TextButton(
-                    onClick = onToggleMode,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    enabled = !isLoading
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        if (isLogin) "Belum punya akun? Daftarkan akun baru"
-                        else "Sudah punya akun? Masuk sekarang"
+
+                    // 💡 KONDISI REGISTER: JUDUL MASUK KE DALAM CARD (Sesuai Figma Register)
+                    if (!isLogin) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Buat Akun Baru",
+                                fontFamily = MontserratFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                color = if (isDark) Color.White else TourizmeBlueMain
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Mulai petualangan Anda menjelajahi destinasi wisata terbaik.",
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 14.sp,
+                                color = if (isDark) Color.LightGray else TourizmeTextPrimary
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    if (!isLogin) {
+                        FormLabelAndTextField(
+                            label = "Nama Lengkap",
+                            value = name,
+                            onValueChange = { onStateChange(AuthFormState.Name(it)) },
+                            placeholder = "Masukkan nama lengkap",
+                            enabled = !isLoading,
+                            isDark = isDark
+                        )
+                        FormLabelAndTextField(
+                            label = "Username",
+                            value = nickname,
+                            onValueChange = { onStateChange(AuthFormState.Nickname(it)) },
+                            placeholder = "Masukkan Username",
+                            enabled = !isLoading,
+                            isDark = isDark
+                        )
+                    }
+
+                    FormLabelAndTextField(
+                        label = if (isLogin) "Username or Email" else "Email",
+                        value = emailOrNickname,
+                        onValueChange = { onStateChange(AuthFormState.Email(it)) },
+                        placeholder = if (isLogin) "nama@email.com" else "example@mail.com",
+                        enabled = !isLoading,
+                        isDark = isDark,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Kata Sandi",
+                                color = if (isDark) TourizmeHighlightGreen else TourizmeTextPrimary,
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                            if (isLogin) {
+                                TextButton(
+                                    onClick = { },
+                                    contentPadding = PaddingValues(0.dp),
+                                    modifier = Modifier.height(24.dp)
+                                ) {
+                                    Text(
+                                        text = "Lupa Kata Sandi?",
+//                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isDark) TourizmeHighlightGreen else TourizmeBlueMain,
+                                        fontFamily = InterFontFamily,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { onStateChange(AuthFormState.Password(it)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isLoading,
+                            singleLine = true,
+                            placeholder = {
+                                Text(
+                                    if (isLogin) "••••••••" else "Min. 8 karakter",
+                                    color = Color.LightGray
+                                )
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                val image =
+                                    if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                                IconButton(onClick = onTogglePasswordVisibility) {
+                                    Icon(
+                                        imageVector = image,
+                                        contentDescription = null,
+                                        tint = Color.Gray
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = if (isDark) TourizmeBgDarkTop else Color.White,
+                                unfocusedContainerColor = if (isDark) TourizmeBgDarkTop else Color.White,
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent
+                            ),
+                            textStyle = TextStyle(
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 16.sp,
+                                color = TourizmeTextPrimary
+                            )
+                        )
+                    }
+
+                    if (!isLogin) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Konfirmasi Kata Sandi",
+                                color = if (isDark) TourizmeHighlightGreen else TourizmeTextPrimary,
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = { onStateChange(AuthFormState.ConfirmPassword(it)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !isLoading,
+                                singleLine = true,
+                                placeholder = {
+                                    Text(
+                                        "Ulangi kata sandi",
+                                        color = Color.LightGray
+                                    )
+                                },
+                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                trailingIcon = {
+                                    val image =
+                                        if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                                    IconButton(onClick = onTogglePasswordVisibility) {
+                                        Icon(
+                                            imageVector = image,
+                                            contentDescription = null,
+                                            tint = Color.Gray
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = if (isDark) TourizmeBgDarkTop else Color.White,
+                                    unfocusedContainerColor = if (isDark) TourizmeBgDarkTop else Color.White,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent
+                                ),
+                                textStyle = TextStyle(
+                                    fontFamily = InterFontFamily,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 16.sp,
+                                    color = TourizmeTextPrimary
+                                )
+                            )
+                        }
+
+                        if (password.isNotEmpty() && password.length < 8) {
+                            Text(
+                                text = "Password minimal 8 karakter",
+                                color = MaterialTheme.colorScheme.error,
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 14.sp,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = TourizmeBlueMain
+                        )
+                    } else {
+                        Button(
+                            onClick = onAuthClick,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) TourizmeBlueMain else Color(0xFF006194)
+                            )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = if (isLogin) "Masuk" else "Daftar Sekarang",
+                                    color = if (isDark) TourizmeHighlightGreen else Color.White,
+                                    fontFamily = InterFontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+//                                Spacer(modifier = Modifier.width(8.dp))
+//                                Icon(
+//                                    imageVector = Icons.Filled.ArrowForward,
+//                                    contentDescription = null,
+//                                    tint = Color.White,
+//                                    modifier = Modifier.size(18.dp)
+//                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isLogin) "Belum punya akun? " else "Sudah punya akun? ",
+                            color = if (isDark) TourizmeSurfaceLight else TourizmeTextPrimary,
+                            fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        )
+                        TextButton(
+                            onClick = onToggleMode,
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Text(
+                                text = if (isLogin) "Daftar Sekarang" else "Masuk di sini",
+                                color = if (isLogin) TourizmeHighlightGreen else TourizmeBlueMain,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = InterFontFamily,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (isLogin && !isLoading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                TextButton(onClick = onGuestLogin) {
+                    Text(
+                        text = "Masuk Sebagai Tamu",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
+
+@Composable
+fun FormLabelAndTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    enabled: Boolean,
+    isDark: Boolean,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            color = if (isDark) TourizmeHighlightGreen else TourizmeTextPrimary,
+            fontFamily = InterFontFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            placeholder = { Text(placeholder, color = Color.LightGray) },
+            keyboardOptions = keyboardOptions,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = if (isDark) TourizmeBgDarkTop else Color.White,
+                unfocusedContainerColor = if (isDark) TourizmeBgDarkTop else Color.White,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent
+            ),
+            textStyle = TextStyle(
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 16.sp,
+                color = TourizmeTextPrimary
+            )
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(

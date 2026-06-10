@@ -48,6 +48,7 @@ class HomepageViewModel @Inject constructor(
 
     fun loadDestinations() {
         viewModelScope.launch(Dispatchers.IO) {
+
             _isLoading.value = true
             try {
                 val data = homepageManager.readDestinationsFromData(context)

@@ -34,8 +34,10 @@ import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
 import com.example.tourtest.model.Destination
 import com.example.tourtest.provider.homepage.DestinationProvider
+import com.example.tourtest.ui.theme.InterFontFamily
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeBlueMain
 import com.example.tourtest.ui.theme.TourizmeTheme
-
 
 @Composable
 fun HomepageContent(
@@ -59,11 +61,11 @@ fun HomepageContent(
     Scaffold(
         topBar = {
             Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = TourizmeBlueMain,
                 shadowElevation = 4.dp
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 14.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
@@ -74,14 +76,19 @@ fun HomepageContent(
                             Text(
                                 text = "$greeting, ",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                fontFamily = MontserratFontFamily,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 20.sp,
+                                color = Color.White
                             )
 
                             Text(
                                 text = userName,
                                 style = MaterialTheme.typography.bodyLarge,
+                                fontFamily = MontserratFontFamily,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                fontSize = 20.sp,
+                                color = Color.White
                             )
                         }
 
@@ -89,7 +96,7 @@ fun HomepageContent(
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = "Notifikasi",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                tint = Color.White
                             )
                         }
                     }
@@ -97,8 +104,8 @@ fun HomepageContent(
                     TextField(
                         value = searchQuery,
                         onValueChange =  onSearchQueryChange ,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp).heightIn(min = 44.dp),
-                        placeholder = { Text("Mau liburan ke mana nih?") },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).heightIn(min = 44.dp),
+                        placeholder = { Text("Cari destinasi impian?", fontFamily = InterFontFamily, fontWeight = FontWeight.Normal ) },
                         singleLine = true,
                         shape = MaterialTheme.shapes.medium,
                         colors = TextFieldDefaults.colors(
@@ -131,13 +138,17 @@ fun HomepageContent(
                 ) {
                     Text(
                         text = "Temukan Petualanganmu",
-                        fontSize = 24.sp,
+                        fontFamily = MontserratFontFamily,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Temukan destinasi wisata terbaik di Solo Raya",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = MontserratFontFamily,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Normal
                     )
                 }
             }

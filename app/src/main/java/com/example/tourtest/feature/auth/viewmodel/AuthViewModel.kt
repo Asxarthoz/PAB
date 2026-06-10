@@ -59,7 +59,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 AuthManager.setCurrentUser("GUEST")
-                userSession.saveSession("GUEST")
+                userSession.saveSession("GUEST", "GUEST")
 
                 _loginSuccess.send(Unit)
             } catch (e: Exception) {
@@ -112,7 +112,7 @@ class AuthViewModel @Inject constructor(
             val user = AuthManager.getLoggedInUser(context, emailOrNickname.trim(), password.trim())
             user?.let {
                 AuthManager.setCurrentUser(it.id)
-                userSession.saveSession(it.id)
+                userSession.saveSession(it.id, it.nickName)
                 _loginSuccess.send(Unit)
             } ?: run {
                 errorMessage = "Gagal mengambil data user"
@@ -157,7 +157,7 @@ class AuthViewModel @Inject constructor(
                         )
                         user?.let {
                             AuthManager.setCurrentUser(it.id)
-                            userSession.saveSession(it.id)
+                            userSession.saveSession(it.id, it.nickName)
                         }
                         _loginSuccess.send(Unit)
                     } else {

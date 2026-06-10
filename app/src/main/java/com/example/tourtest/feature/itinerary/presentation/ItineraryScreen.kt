@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -32,10 +33,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
@@ -47,6 +50,8 @@ import com.example.tourtest.feature.favorite.manager.FavoriteManager
 import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
 import com.example.tourtest.model.Destination
 import com.example.tourtest.model.ItineraryWithDestination
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeBlueMain
 import kotlin.collections.component1
 import kotlin.collections.component2
 
@@ -174,9 +179,13 @@ fun ItineraryGuestContent(
                 actionButton = {
                     Button(
                         onClick = onNavigateToLogin,
-                        modifier = Modifier.fillMaxWidth(0.7f)
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        colors = ButtonDefaults.buttonColors(
+                                containerColor = TourizmeBlueMain,
+                                contentColor = Color.White
+                        )
                     ) {
-                        Text("Login Sekarang!")
+                        Text("Login Sekarang!", fontFamily = MontserratFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                     }
                 }
             )
@@ -346,6 +355,19 @@ fun ItineraryPreview() {
             onClick = {},
             onDeleteItineraryClick = {},
             onItineraryClick = {}
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun ItineraryGuestPreview() {
+    MaterialTheme {
+        ItineraryGuestContent(
+            searchQuery = "",
+            onSearchQueryChange = {},
+            onNotificationClick = {},
+            onNavigateToLogin = {}
         )
     }
 }
