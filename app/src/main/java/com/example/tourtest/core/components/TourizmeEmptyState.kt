@@ -9,9 +9,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeTextPrimary
 
 @Composable
 public fun TourizmeEmptyState(
@@ -29,7 +33,7 @@ public fun TourizmeEmptyState(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = imageVector,
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -37,13 +41,17 @@ public fun TourizmeEmptyState(
             Text(
                 text = message,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontFamily = MontserratFontFamily,
+                fontWeight = FontWeight.Medium,
+                color = TourizmeTextPrimary
             )
             if(subMessage != null) {
                 Text(
                     text = subMessage,
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = MontserratFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    color = TourizmeTextPrimary,
                     textAlign = TextAlign.Center
                 )
             }
@@ -53,5 +61,16 @@ public fun TourizmeEmptyState(
                 actionButton()
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TourizmeEmptyStatePreview() {
+    MaterialTheme {
+        TourizmeEmptyState(
+            message = "Data Kosong",
+            subMessage = "Tidak ada data yang ditemukan"
+        )
     }
 }

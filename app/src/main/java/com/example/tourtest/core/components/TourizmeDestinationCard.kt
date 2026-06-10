@@ -2,6 +2,7 @@ package com.example.tourtest.core.components
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,8 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,98 +40,28 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+//import coil.compose.AsyncImage
 import com.example.tourtest.R
 import com.example.tourtest.model.Destination
+import com.example.tourtest.ui.theme.InterFontFamily
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeBlueMain
+import kotlin.String
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-public fun DestinationCard(
+fun DestinationCardContent(
     destination: Destination,
     isWishlisted: Boolean,
     isItineraried: Boolean,
     onWishListClick: () -> Unit,
-//    onItineraryClick: (String) -> Unit,
     onItineraryClick: () -> Unit,
-    onClick:() -> Unit
+    onMapsClick: () -> Unit,
+    onClick:() -> Unit,
 ) {
-    val context = LocalContext.current
-
-//    val sheetState = rememberModalBottomSheetState()
-//    var showBottomSheet by remember { mutableStateOf(false) }
-//    val datePickerState = rememberDatePickerState(
-//        selectableDates = object : SelectableDates {
-//            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-//                val calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
-//                calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
-//                calendar.set(java.util.Calendar.MINUTE, 0)
-//                calendar.set(java.util.Calendar.SECOND, 0)
-//                calendar.set(java.util.Calendar.MILLISECOND, 0)
-//
-//                val startOfToday = calendar.timeInMillis
-//
-////                scheduleNotification(context, utcTimeMillis, "dummy_message",destination.id)
-//
-//                return utcTimeMillis >= startOfToday
-//            }
-//        }
-//    )
-//
-//    if (showBottomSheet) {
-//        ModalBottomSheet(
-//            onDismissRequest = { showBottomSheet = false },
-//            sheetState = sheetState,
-//            containerColor = MaterialTheme.colorScheme.surface
-//        ) {
-//            Column(
-//                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//                Text(
-//                    text = "Pilih tanggal rencana",
-//                    style = MaterialTheme.typography.titleLarge,
-//                    modifier = Modifier.padding(vertical = 16.dp)
-//                )
-//
-//                DatePicker(state = datePickerState, showModeToggle = false)
-//
-//                Row(
-//                    modifier = Modifier.fillMaxWidth(),
-//                    horizontalArrangement = Arrangement.End
-//                ) {
-//                    TextButton(onClick = { showBottomSheet = false }) {
-//                        Text(text = "Batal")
-//                    }
-//                    Button(onClick = {
-//                        val selectedDate = datePickerState.selectedDateMillis
-//                        if (selectedDate != null) {
-//                            val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(selectedDate))
-//                            onItineraryClick(formattedDate)
-//
-//                            scheduleNotification(
-//                                context = context,
-//                                targetTimeMillis = selectedDate,
-//                                destinationName = destination.name,
-//                                destinationId = destination.id
-//                            )
-//                        }
-//                        showBottomSheet = false
-//                    }) {
-//                        Text(text = "Pilih")
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-    val openMaps = {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(destination.gmapUrl))
-        context.startActivity(intent)
-    }
-
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -135,15 +69,32 @@ public fun DestinationCard(
     ) {
         Column {
             Box {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = destination.imageUrl,
                     contentDescription = destination.name,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp),
                     contentScale = ContentScale.Crop,
-                    placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
-                    error = painterResource(R.drawable.undraw_loading_ui_egb4)
+//                    placeholder = painterResource(R.drawable.undraw_loading_ui_egb4),
+//                    error = painterResource(R.drawable.undraw_loading_ui_egb4),
+                    loading = {
+                        ShimmerPlaceholder()
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFFF1F4FA)),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Gagal memuat gambar",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
                 )
 
                 Row(
@@ -168,7 +119,7 @@ public fun DestinationCard(
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Itinerary",
-                            tint = if (isItineraried) Color.Cyan else Color.White
+                            tint = if (isItineraried) TourizmeBlueMain else Color.White
                         )
                     }
                 }
@@ -178,34 +129,129 @@ public fun DestinationCard(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = destination.name,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = destination.name,
+                        fontSize = 20.sp,
+                        fontFamily = MontserratFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = "Rating",
+                            tint = Color(0xffffc107),
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        Text(
+                            text = destination.averageRating.toString(),
+                            fontSize = 16.sp,
+                            fontFamily = InterFontFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xff3f4850)
+                        )
+                    }
+                }
+
                 TextButton(
-                    onClick = openMaps,
+                    onClick = onMapsClick,
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
+                        tint = TourizmeBlueMain
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = destination.location,
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.secondary,
                         fontSize = 14.sp
                     )
                 }
                 Text(
-                    text = "Mulai dari ${destination.price}",
+                    text = "Rp ${destination.price} / Org",
+                    fontFamily = InterFontFamily,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = TourizmeBlueMain,
                     fontSize = 16.sp
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+public fun DestinationCard(
+    destination: Destination,
+    isWishlisted: Boolean,
+    isItineraried: Boolean,
+    onWishListClick: () -> Unit,
+    onItineraryClick: () -> Unit,
+    onClick:() -> Unit
+) {
+    val context = LocalContext.current
+
+    val openMaps = {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(destination.gmapUrl))
+        context.startActivity(intent)
+    }
+
+    DestinationCardContent(
+        destination = destination,
+        isWishlisted = isWishlisted,
+        isItineraried = isItineraried,
+        onWishListClick = onWishListClick,
+        onItineraryClick = onItineraryClick,
+        onMapsClick = openMaps,
+        onClick = onClick
+    )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+fun DestinationCardPreview() {
+    val dummyDestination = Destination(
+        id = "1",
+        name = "Pantai Parangtritis",
+        location = "Bantul, Yogyakarta",
+        price = "15.000",
+        imageUrl = "https://example.com/image.jpg",
+        gmapUrl = "https://maps.google.com",
+        description = "Deskripsi Pantai Parangtritis",
+        averageRating = 4.7f,
+        reviews = emptyList()
+    )
+
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            DestinationCardContent(
+                destination = dummyDestination,
+                isWishlisted = true,
+                isItineraried = true,
+                onWishListClick = {},
+                onItineraryClick = {},
+                onMapsClick = {},
+                onClick = {}
+            )
         }
     }
 }
