@@ -2,7 +2,7 @@ package com.example.tourtest.core.network.model
 
 import com.google.gson.annotations.SerializedName
 
-data class DestinationRespons(
+data class DestinationResponse(
     @SerializedName("id") val id: String,
     @SerializedName("name") val name: String,
     @SerializedName("description") val description: String,
@@ -17,5 +17,5 @@ data class DestinationRespons(
     // 💡 Relasi Tambahan dari ERD:
     @SerializedName("category_id") val categoryId: String?,
     @SerializedName("reviews") val reviews: List<ReviewResponse>? = emptyList(),
-    @SerializedName("image_galleries") val imageGalleries: List<ImageGalleryResponse>? = emptyList(
+    @SerializedName("image_galleries") val imageGalleries: List<ImageGalleryResponse>? = emptyList()
 )
