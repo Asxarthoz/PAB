@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -36,6 +38,9 @@ import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.model.Users
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeBlueMain
+import com.example.tourtest.ui.theme.TourizmeTextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,10 +59,11 @@ fun ProfileContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profil Wisatawan", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Profil Wisatawan", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp,) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                    containerColor = TourizmeBlueMain
+                ),
+                windowInsets = WindowInsets(0.dp)
             )
         }
     ) { paddingValues ->
@@ -115,7 +121,7 @@ fun ProfileContent(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
                             .padding(vertical = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -123,7 +129,7 @@ fun ProfileContent(
                             modifier = Modifier
                                 .size(100.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .background(color = Color(0xff52A0C9).copy(alpha = 0.4f))
                                 .clickable { profileBitmap?.let { bitmap ->
                                     onImageClick() }
                                            },
@@ -141,7 +147,7 @@ fun ProfileContent(
                                     imageVector = Icons.Rounded.Person,
                                     contentDescription = null,
                                     modifier = Modifier.size(60.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = TourizmeBlueMain
                                 )
                             }
                         }
@@ -151,12 +157,15 @@ fun ProfileContent(
                             text = user.name,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
+                            fontFamily = MontserratFontFamily,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "@${user.nickName.ifEmpty { "wisatawan" }}",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = MontserratFontFamily,
+                            fontWeight = FontWeight.SemiBold
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -171,16 +180,22 @@ fun ProfileContent(
                             MaterialTheme.colorScheme.secondaryContainer
 
                         Surface(
+                            modifier = Modifier.width(150.dp),
                             shape = RoundedCornerShape(16.dp),
-                            color = badgeColor
+                            color = TourizmeBlueMain,
                         ) {
-                            Text(
-                                text = roleLabel,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                color = contentColorFor(badgeColor)
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = roleLabel,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = MontserratFontFamily,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                    color = Color.White,
+                                )
+                            }
                         }
                     }
 
@@ -189,8 +204,9 @@ fun ProfileContent(
                     Text(
                         text = "Informasi Akun",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = MontserratFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        color = TourizmeBlueMain,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -226,8 +242,9 @@ fun ProfileContent(
                     Text(
                         text = "Pengaturan",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = MontserratFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        color = TourizmeBlueMain,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -265,8 +282,8 @@ fun ProfileContent(
                             onClick = onLogoutClick,
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                containerColor = Color(0xFFB0251B),
+                                contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -293,13 +310,14 @@ fun ProfileGuestContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profil Wisatawan", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                title = { Text("Profil Wisatawan", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 24.sp) },
+//                navigationIcon = {
+//                    IconButton(onClick = onBack) {
+//                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+//                    }
+//                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = TourizmeBlueMain),
+                windowInsets = WindowInsets(0.dp)
             )
         }
     ) { paddingValues ->
@@ -315,9 +333,13 @@ fun ProfileGuestContent(
                 actionButton = {
                     Button(
                         onClick = onNavigateToLogin,
-                        modifier = Modifier.fillMaxWidth(0.7f)
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = TourizmeBlueMain,
+                            contentColor = Color.White
+                        )
                     ) {
-                        Text("Login Sekarang!")
+                        Text("Login Sekarang!", fontFamily = MontserratFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                     }
                 }
             )
@@ -412,12 +434,12 @@ fun ProfileRowItem(label: String, value: String, icon: ImageVector) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = TourizmeBlueMain
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = label, fontSize = 12.sp, color = TourizmeBlueMain, fontFamily = MontserratFontFamily, fontWeight = FontWeight.Medium)
+            Text(text = value, fontSize = 16.sp, color = TourizmeTextPrimary , fontFamily = MontserratFontFamily , fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -433,14 +455,14 @@ fun ActionRowItem(title: String, icon: androidx.compose.ui.graphics.vector.Image
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(imageVector = icon, contentDescription = null, tint = TourizmeBlueMain)
             Spacer(modifier = Modifier.width(16.dp))
-            Text(text = title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TourizmeBlueMain)
         }
         Icon(
             imageVector = Icons.Rounded.ChevronRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = TourizmeBlueMain
         )
     }
 }
@@ -452,8 +474,8 @@ fun ProfilePreview() {
         ProfileContent(
             currentUser = Users(
                 id = "123",
-                name = "Qoqo Altiano",
-                nickName = "Qoqo",
+                name = "Zidan Dicky Ambasuha",
+                nickName = "Zidan",
                 email = "qoqo@student.uns.ac.id",
                 password = "password123",
                 role = "wisatawan",
@@ -467,6 +489,17 @@ fun ProfilePreview() {
             onLogoutClick = {},
             onImageClick = {},
             onBackToLogin = {}
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun ProfileGuestPreview() {
+    MaterialTheme {
+        ProfileGuestContent(
+            onBack = {},
+            onNavigateToLogin = {}
         )
     }
 }

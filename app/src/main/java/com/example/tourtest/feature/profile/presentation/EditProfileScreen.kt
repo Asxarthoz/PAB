@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,11 +47,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.model.Users
+import com.example.tourtest.ui.theme.MontserratFontFamily
+import com.example.tourtest.ui.theme.TourizmeBlueMain
+import com.example.tourtest.ui.theme.TourizmeTextPrimary
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,30 +86,31 @@ fun EditProfileContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Edit Profil", fontWeight = FontWeight.SemiBold) },
+                title = { Text(text = "Edit Profil", fontFamily = MontserratFontFamily, fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = Color.White)
                     }
                 },
                 actions = {
                     if (profileBitmap != null) {
                         IconButton(onClick = onDeletePhoto) {
-                            Icon(Icons.Default.Delete, contentDescription = "Hapus Foto", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = "Hapus Foto", tint = Color.White)
                         }
                     }
 
                     TextButton(onClick = onSave, enabled = !isLoading && !isSaving) {
                         if (isLoading || isSaving) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
                         } else {
-                            Icon(Icons.Default.Save, contentDescription = "Simpan")
+                            Icon(Icons.Default.Save, contentDescription = "Simpan", tint = Color.White)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Simpan")
+                            Text("Simpan", fontFamily = MontserratFontFamily, fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 14.sp)
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = TourizmeBlueMain),
+                windowInsets = WindowInsets(0.dp)
             )
         }
     ) { paddingValues ->
@@ -113,14 +119,14 @@ fun EditProfileContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)), // Selaras dengan ProfileScreen
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
                     .padding(vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -131,7 +137,7 @@ fun EditProfileContent(
                         modifier = Modifier
                             .size(100.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(color = Color(0xff52A0C9).copy(alpha = 0.4f))
                             .clickable { showImagePickerDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
@@ -147,7 +153,7 @@ fun EditProfileContent(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = "Default Avatar",
                                 modifier = Modifier.size(60.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = TourizmeBlueMain
                             )
                         }
                     }
@@ -155,7 +161,7 @@ fun EditProfileContent(
                     // Ikon Kamera diletakkan di luar lingkaran agar posisinya pas di pojok kanan bawah
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = TourizmeBlueMain,
                         contentColor = Color.White,
                         modifier = Modifier
                             .size(32.dp)
@@ -175,22 +181,24 @@ fun EditProfileContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = "Tap untuk mengubah foto profil",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
+                    fontSize = 14.sp,
+                    color = TourizmeBlueMain,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = MontserratFontFamily
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(50.dp))
 
             Text(
                 text = "Edit Informasi Profil Anda",
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                fontFamily = MontserratFontFamily,
+                color = TourizmeBlueMain,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
@@ -224,31 +232,52 @@ fun EditProfileContent(
                     OutlinedTextField(
                         value = name,
                         onValueChange = onNameChange,
-                        label = { Text("Nama Lengkap") },
+                        label = { Text("Nama Lengkap", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Normal, color = TourizmeTextPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Person, null) },
-                        isError = name.isBlank()
+                        leadingIcon = { Icon(Icons.Default.Person,  null, tint = TourizmeBlueMain) },
+                        isError = name.isBlank(),
+                        shape = RoundedCornerShape(6.dp),
+                        textStyle = TextStyle(
+                            fontFamily = MontserratFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = TourizmeTextPrimary
+                        )
                     )
 
                     OutlinedTextField(
                         value = nickName,
                         onValueChange = onNickNameChange,
-                        label = { Text("Nickname") },
+                        label = { Text("Username", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Normal, color = TourizmeTextPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.AccountCircle, null) },
-                        isError = nickName.isBlank()
+                        leadingIcon = { Icon(Icons.Default.AccountCircle, null, tint = TourizmeBlueMain) },
+                        isError = nickName.isBlank(),
+                        shape = RoundedCornerShape(6.dp),
+                        textStyle = TextStyle(
+                            fontFamily = MontserratFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = TourizmeTextPrimary
+                        )
                     )
 
                     OutlinedTextField(
                         value = email,
                         onValueChange = onEmailChange,
-                        label = { Text("Email") },
+                        label = { Text("Email", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Normal, color = TourizmeTextPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Email, null) },
-                        isError = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
+                        leadingIcon = { Icon(Icons.Default.Email, null, tint = TourizmeBlueMain) },
+                        isError = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches(),
+                        shape = RoundedCornerShape(6.dp),
+                        textStyle = TextStyle(
+                            fontFamily = MontserratFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = TourizmeTextPrimary
+                        )
                     )
                 }
             }
