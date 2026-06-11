@@ -28,10 +28,9 @@ import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.core.network.NetworkHomepageViewModel
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
-import com.example.tourtest.feature.homepage.viewmodel.HomepageViewModel
 import com.example.tourtest.model.Destination
 import com.example.tourtest.provider.homepage.DestinationProvider
 import com.example.tourtest.ui.theme.InterFontFamily
@@ -46,7 +45,6 @@ fun HomepageContent(
     searchQuery: String,
     isSearchActive: Boolean,
     listState: LazyListState,
-//    currentUserId: String,
     filteredDestinations: List<Destination>,
     favoriteIds: Set<String>,
     itinerariedIds: Set<String>,
@@ -103,7 +101,7 @@ fun HomepageContent(
 
                     TextField(
                         value = searchQuery,
-                        onValueChange =  onSearchQueryChange ,
+                        onValueChange = onSearchQueryChange,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).heightIn(min = 44.dp),
                         placeholder = { Text("Cari destinasi impian?", fontFamily = InterFontFamily, fontWeight = FontWeight.Normal ) },
                         singleLine = true,
@@ -117,7 +115,7 @@ fun HomepageContent(
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick =  onClearSearch ) {
+                                IconButton(onClick = onClearSearch) {
                                     Icon(Icons.Default.Close, contentDescription = "Hapus")
                                 }
                             }
@@ -166,8 +164,7 @@ fun HomepageContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (searchQuery.isNotBlank()) {
-                        TextButton(onClick = { onClearSearch })
-                        {
+                        TextButton(onClick = { onClearSearch }) {
                             Text("Reset")
                         }
                     }
@@ -204,18 +201,17 @@ fun HomepageContent(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomepageScreen(
-    viewModel: HomepageViewModel,
+    viewModel: NetworkHomepageViewModel,
     userSession: UserSession,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-    val currentUserIdFromStore by  userSession.userId.collectAsState(initial = null)
+    val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
     val currentUserId = currentUserIdFromStore ?: "GUEST"
     val listState = rememberLazyListState()
 
@@ -225,7 +221,8 @@ fun HomepageScreen(
 
     val greeting = remember { viewModel.getGreeting() }
     val userName = remember(currentUserId) {
-        AuthManager.getUserById(context, currentUserId)?.nickName ?: "Traveler"
+        // TODO: Nanti ganti dengan UserSession atau API
+        "Traveler"
     }
 
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
@@ -247,18 +244,19 @@ fun HomepageScreen(
     }
 
     LaunchedEffect(currentUserId) {
-         refreshStatus()
+        refreshStatus()
+        viewModel.loadDestinations()
     }
 
     TourizmeDeleteDialog(
         show = showDeleteFavoriteDialog,
-        message =  "Yakin hapus destinasi dari daftar favorit?",
+        message = "Yakin hapus destinasi dari daftar favorit?",
         onConfirm = {
             selectedDestinationId?.let { id ->
-                val succes = FavoriteManager.removeDestination(context, currentUserId, id)
-                if (succes) {
+                val success = FavoriteManager.removeDestination(context, currentUserId, id)
+                if (success) {
                     favoriteIds = favoriteIds - id
-                    Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Berhasil dihapus dari favorit", Toast.LENGTH_SHORT).show()
                 }
             }
             showDeleteFavoriteDialog = false
@@ -278,10 +276,10 @@ fun HomepageScreen(
                 if (currentUserId.isBlank()) {
                     Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
                 } else {
-                    selectedDestinationForItinerary?.let { destination ->
-                        val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                    selectedDestinationForItinerary?.let { dest ->
+                        val success = ItineraryManager.addDestination(context, currentUserId, dest.id, formattedDate)
                         if (success) {
-                            itinerariedIds = itinerariedIds + destination.id
+                            itinerariedIds = itinerariedIds + dest.id
                             Toast.makeText(context, "Berhasil disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(context, "Gagal disimpan ke daftar rencana!", Toast.LENGTH_SHORT).show()
@@ -293,28 +291,28 @@ fun HomepageScreen(
     }
 
     if (showLoginPromptDialog) {
-       AlertDialog(
-           onDismissRequest = { showLoginPromptDialog = false },
-           title = { Text(text= "Fitur Terbatas") },
-           text = { Text(text = "Mohon login terlebih dahulu untuk menggunakan fitur ini.") },
-           confirmButton = {
-               Button(
-                   onClick = {
-                       showLoginPromptDialog = false
-                       onNavigateToLogin()
-                   }
-               ) {
-                   Text(text = "Login")
-               }
-           },
-           dismissButton = {
-               TextButton(
-                   onClick = { showLoginPromptDialog = false }
-               ) {
-                   Text(text = "Batal")
-               }
-           }
-       )
+        AlertDialog(
+            onDismissRequest = { showLoginPromptDialog = false },
+            title = { Text(text = "Fitur Terbatas") },
+            text = { Text(text = "Mohon login terlebih dahulu untuk menggunakan fitur ini.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLoginPromptDialog = false
+                        onNavigateToLogin()
+                    }
+                ) {
+                    Text(text = "Login")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLoginPromptDialog = false }
+                ) {
+                    Text(text = "Batal")
+                }
+            }
+        )
     }
 
     HomepageContent(
@@ -333,19 +331,15 @@ fun HomepageScreen(
         onWishListClick = { destination ->
             if (currentUserId == "GUEST" || currentUserId.isBlank()) {
                 showLoginPromptDialog = true
-//                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 if (favoriteIds.contains(destination.id)) {
+
                     selectedDestinationId = destination.id
                     showDeleteFavoriteDialog = true
                 } else {
-                    val success = FavoriteManager.addDestination(context, currentUserId, destination.id)
-                    if (success) {
-                        favoriteIds = favoriteIds + destination.id
-                        Toast.makeText(context, "Berhasil disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Gagal disimpan ke daftar favorit", android.widget.Toast.LENGTH_SHORT).show()
-                    }
+                    viewModel.addToWishlist(destination.id)
+                    favoriteIds = favoriteIds + destination.id
+                    Toast.makeText(context, "Mengirim ke server...", Toast.LENGTH_SHORT).show()
                 }
             }
         },
@@ -359,10 +353,9 @@ fun HomepageScreen(
         onClick = { destination -> onNavigateToDetail(destination.id) }
     )
 }
-
 @Preview(showSystemUi = true)
 @Composable
-fun HomepagePreview(@PreviewParameter(DestinationProvider::class) destinations: List<Destination>) {
+fun HomepagePreview() { // 👈 Melepas @PreviewParameter yang rusak
     TourizmeTheme {
         HomepageContent(
             greeting = "Selamat Pagi",
@@ -370,16 +363,16 @@ fun HomepagePreview(@PreviewParameter(DestinationProvider::class) destinations: 
             searchQuery = "",
             isSearchActive = false,
             listState = rememberLazyListState(),
-            filteredDestinations = destinations,
+            filteredDestinations = emptyList(), // 👈 Menggunakan list kosong agar aman saat build
             favoriteIds = setOf(),
             itinerariedIds = setOf(),
             onSearchQueryChange = {},
             onClearSearch = {},
-            onNavigateToDetail = {},
+            onNavigateToDetail = { id -> },       // 👈 Solusi: Diberi penampung 'id' agar tidak error
             onNavigateToNotification = {},
-            onWishListClick = {},
-            onItineraryClick = { _ -> },
-            onClick = {}
+            onWishListClick = { destination -> }, // 👈 Solusi: Diberi penampung 'destination'
+            onItineraryClick = { destination -> },// 👈 Solusi: Diberi penampung 'destination'
+            onClick = { destination -> }          // 👈 Solusi: Diberi penampung 'destination'
         )
     }
 }

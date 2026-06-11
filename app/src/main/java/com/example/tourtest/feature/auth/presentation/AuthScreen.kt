@@ -53,7 +53,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import com.example.tourtest.feature.auth.viewmodel.AuthViewModel
@@ -115,19 +114,6 @@ fun AuthContent(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-//            Spacer(modifier = Modifier.height(144.dp))
-//
-//            Text(
-//                text = "TOURIZME",
-//                style = MaterialTheme.typography.headlineMedium.copy(
-//                    fontFamily = MontserratFontFamily,
-//                    fontWeight = FontWeight.Bold,
-//                    letterSpacing = 2.sp,
-//                    fontSize = 26.sp
-//                ),
-//                color = Color.White
-//            )
-
             if (isLogin) {
                 Spacer(modifier = Modifier.height(120.dp))
 
@@ -181,7 +167,6 @@ fun AuthContent(
 
                 Spacer(modifier = Modifier.height(32.dp))
             }
-
 
             // Banner Pesan Error Komponen (Jika validasi gagal)
             if (errorMessage != null) {
@@ -283,7 +268,6 @@ fun AuthContent(
                                 ) {
                                     Text(
                                         text = "Lupa Kata Sandi?",
-//                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                         color = if (isDark) TourizmeHighlightGreen else TourizmeBlueMain,
                                         fontFamily = InterFontFamily,
                                         fontWeight = FontWeight.SemiBold,
@@ -425,13 +409,6 @@ fun AuthContent(
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp
                                 )
-//                                Spacer(modifier = Modifier.width(8.dp))
-//                                Icon(
-//                                    imageVector = Icons.Filled.ArrowForward,
-//                                    contentDescription = null,
-//                                    tint = Color.White,
-//                                    modifier = Modifier.size(18.dp)
-//                                )
                             }
                         }
                     }
@@ -530,7 +507,8 @@ fun FormLabelAndTextField(
 @Composable
 fun AuthScreen(
     viewModel: AuthViewModel,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onGuestLogin: () -> Unit
 ) {
     val isLogin = viewModel.isLogin
     val name = viewModel.name
@@ -570,7 +548,7 @@ fun AuthScreen(
         onToggleMode = { viewModel.toggleMode() },
         onTogglePasswordVisibility = { viewModel.togglePasswordVisibility() },
         onAuthClick = { viewModel.handleAuthAction() },
-        onGuestLogin = { viewModel.handleGuestLogin() }
+        onGuestLogin = onGuestLogin
     )
 }
 

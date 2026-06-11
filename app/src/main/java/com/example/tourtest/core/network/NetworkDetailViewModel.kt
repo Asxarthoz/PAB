@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.favorite.manager.FavoriteManager
-import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.model.Destination
 import com.example.tourtest.model.Review
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,12 +20,11 @@ import javax.inject.Inject
 class NetworkDetailViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userSession: UserSession,
-    private val networkApiManager: NetworkApiManager,
-    private val favoriteManager: FavoriteManager,
-    private val itineraryManager: ItineraryManager
+    private val networkApiManager: NetworkApiManager
 ) : ViewModel() {
 
-    private var destinationId: String = ""
+    private var destinationIdLong: Long = 0L
+    private var currentToken: String = ""
     private var currentUserId: String = ""
 
     private val _destination = MutableStateFlow<Destination?>(null)
@@ -48,14 +45,19 @@ class NetworkDetailViewModel @Inject constructor(
     private val _userReview = MutableStateFlow<Review?>(null)
     val userReview: StateFlow<Review?> = _userReview.asStateFlow()
 
+    // ========== INITIALIZATION ==========
+
     fun initializeData(destinationId: String) {
-        if (this.destinationId == destinationId) return
-        this.destinationId = destinationId
+        val idLong = destinationId.toLongOrNull() ?: 0L
+        if (destinationIdLong == idLong && idLong != 0L) return
+
+        this.destinationIdLong = idLong
 
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
-                currentUserId = userSession.userId.firstOrNull() ?: "GUEST"
+                currentToken = userSession.token.firstOrNull() ?: ""
+                currentUserId = userSession.userId.firstOrNull() ?: ""
                 refreshDestination()
                 loadStatus()
             } catch (e: Exception) {
@@ -67,22 +69,22 @@ class NetworkDetailViewModel @Inject constructor(
     }
 
     private suspend fun refreshDestination() {
-        // Mengambil data terupdate langsung dari internet menggunakan NetworkApiManager baru
-        val dest = networkApiManager.getDestinationById(destinationId)
+        val dest = networkApiManager.getDestinationById(destinationIdLong)
         _destination.value = dest
         checkUserReviewStatus()
     }
 
-    private fun loadStatus() {
+    private suspend fun loadStatus() {
+        if (currentToken.isBlank() || currentUserId == "GUEST") return
         try {
-            // Cek status kecocokan data favorit dan itinerary lokal (.txt) agar tetap berjalan sinkron
-            val favorites = favoriteManager.getAllFavorite(context)
-            _isFavorite.value = favorites.any {
-                it.destinationId == destinationId && it.userId == currentUserId
-            }
-            val itineraries = itineraryManager.getAllItinerary(context)
-            _isPlanned.value = itineraries.any {
-                it.destinationId == destinationId && it.userId == currentUserId
+            // Cek wishlist dari API
+            val wishlist = networkApiManager.getWishlist(currentToken)
+            _isFavorite.value = wishlist.any { it.destinationId == destinationIdLong }
+
+            // Cek itinerary dari API
+            val itineraries = networkApiManager.getItineraries(currentToken)
+            _isPlanned.value = itineraries.any { itinerary ->
+                itinerary.items?.any { item -> item.destinationId == destinationIdLong } == true
             }
         } catch (e: Exception) {
             _error.value = e.message
@@ -94,19 +96,37 @@ class NetworkDetailViewModel @Inject constructor(
             _userReview.value = null
             return
         }
-        // Mencari apakah dari data list review API, ada ulasan yang diisi oleh id user ini
-        _userReview.value = _destination.value?.reviews?.find { it.userId == currentUserId }
+        // API review tidak selalu sertakan user_id, coba cocokkan dengan userId atau username
+        val currentUsername = _destination.value?.reviews?.find {
+            it.userId == currentUserId
+        }
+        _userReview.value = currentUsername
     }
+
+    // ========== FAVORITE & ITINERARY ==========
 
     fun toggleFavorite() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                if (_isFavorite.value) {
-                    favoriteManager.removeDestination(context, currentUserId, destinationId)
-                } else {
-                    favoriteManager.addDestination(context, currentUserId, destinationId)
+                if (currentToken.isBlank() || currentUserId == "GUEST") {
+                    _error.value = "Silakan login terlebih dahulu"
+                    return@launch
                 }
-                _isFavorite.value = !_isFavorite.value
+
+                val destinationIdStr = destinationIdLong.toString()
+
+                if (_isFavorite.value) {
+                    // Ambil wishlist lalu cari id-nya untuk dihapus
+                    val wishlist = networkApiManager.getWishlist(currentToken)
+                    val wishlistItem = wishlist.find { it.destinationId.toString() == destinationIdStr }
+                    if (wishlistItem != null) {
+                        val success = networkApiManager.removeFromWishlist(currentToken, wishlistItem.id)
+                        if (success) _isFavorite.value = false
+                    }
+                } else {
+                    val success = networkApiManager.addToWishlist(currentToken, destinationIdLong)
+                    if (success) _isFavorite.value = true
+                }
             } catch (e: Exception) {
                 _error.value = e.message
             }
@@ -116,27 +136,65 @@ class NetworkDetailViewModel @Inject constructor(
     fun addToItinerary(date: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val success = itineraryManager.addDestination(context, currentUserId, destinationId, date)
-                if (success) _isPlanned.value = true
-                else _error.value = "Gagal menambahkan ke rencana"
+                if (currentToken.isBlank() || currentUserId == "GUEST") {
+                    _error.value = "Silakan login terlebih dahulu"
+                    return@launch
+                }
+
+                // Step 1: Buat itinerary baru
+                val itinerary = networkApiManager.createItinerary(
+                    token = currentToken,
+                    title = "Perjalanan saya",
+                    startDate = date
+                )
+                if (itinerary == null) {
+                    _error.value = "Gagal membuat rencana perjalanan"
+                    return@launch
+                }
+
+                // Step 2: Tambahkan destinasi sebagai item
+                val itemAdded = networkApiManager.addItineraryItem(
+                    token = currentToken,
+                    itineraryId = itinerary.id,
+                    destinationId = destinationIdLong,
+                    day = 1,
+                    sequenceOrder = 1,
+                    startTime = "08:00",
+                    endTime = "10:00"
+                )
+
+                if (itemAdded) {
+                    _isPlanned.value = true
+                } else {
+                    _error.value = "Gagal menambahkan destinasi ke rencana"
+                }
             } catch (e: Exception) {
                 _error.value = e.message
             }
         }
     }
 
+    // ========== REVIEW ==========
+
     fun submitReview(rating: Float, comment: String) {
         if (comment.isBlank()) return
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val uId = userSession.userId.firstOrNull() ?: "GUEST"
-                val added = networkApiManager.postReview(
-                    destId = destinationId,
-                    userId = uId,
-                    rating = rating.coerceIn(1f, 5f),
-                    comment = comment.trim()
+                if (currentToken.isBlank() || currentUserId == "GUEST") {
+                    _error.value = "Silakan login terlebih dahulu"
+                    return@launch
+                }
+
+                // ✅ createReview dengan token
+                val success = networkApiManager.createReview(
+                    token = currentToken,
+                    destinationId = destinationIdLong,
+                    rating = rating.toInt().coerceIn(1, 5),
+                    description = comment.trim()
                 )
-                if (added) {
+
+                if (success) {
                     networkApiManager.clearCache()
                     refreshDestination()
                 } else {
@@ -150,9 +208,10 @@ class NetworkDetailViewModel @Inject constructor(
 
     fun updateReview(newRating: Float, newComment: String) {
         if (newComment.isBlank()) return
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Panggilan update via API Manager jaringan baru
+                _error.value = "Fitur update review akan tersedia setelah API aktif"
                 networkApiManager.clearCache()
                 refreshDestination()
             } catch (e: Exception) {
@@ -164,7 +223,7 @@ class NetworkDetailViewModel @Inject constructor(
     fun deleteMyReview() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Panggilan delete via API Manager jaringan baru
+                _error.value = "Fitur hapus review akan tersedia setelah API aktif"
                 networkApiManager.clearCache()
                 refreshDestination()
             } catch (e: Exception) {

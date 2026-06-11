@@ -1,38 +1,37 @@
-// core/Routes.kt
 package com.example.tourtest.core
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 @Serializable
-object Routes {
+sealed class Routes : NavKey {
     @Serializable
-    data object AuthRoute : NavKey
+    data object AuthRoute : Routes()
 
     @Serializable
-    data object HomeRoute : NavKey
+    data object HomeRoute : Routes()
 
     @Serializable
-    data object FavoriteRoute : NavKey
+    data object FavoriteRoute : Routes()
 
     @Serializable
-    data object ItineraryRoute : NavKey
+    data object ItineraryRoute : Routes()
 
     @Serializable
-    data object ProfileRoute : NavKey
+    data object ProfileRoute : Routes()
 
     @Serializable
-    data object NotificationRoute : NavKey
+    data object NotificationRoute : Routes()
 
     @Serializable
-    data object EditProfileRoute : NavKey
+    data object EditProfileRoute : Routes()
 
     @Serializable
-    data object ChangePasswordRoute : NavKey
+    data object ChangePasswordRoute : Routes()
 
     @Serializable
-    data object FullScreenImageRoute : NavKey
+    data object FullScreenImageRoute : Routes()
 
     @Serializable
-    data class DetailRoute(val destinationId: String) : NavKey
+    data class DetailRoute(val destinationId: String) : Routes()
 }

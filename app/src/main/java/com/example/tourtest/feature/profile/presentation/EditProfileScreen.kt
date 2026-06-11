@@ -34,29 +34,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.tourtest.feature.profile.manager.ProfileManager
 import android.util.Patterns
 import android.util.Log
-import androidx.activity.result.launch
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tourtest.core.data.UserSession
 import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
 import com.example.tourtest.model.Users
 import com.example.tourtest.ui.theme.MontserratFontFamily
 import com.example.tourtest.ui.theme.TourizmeBlueMain
 import com.example.tourtest.ui.theme.TourizmeTextPrimary
-import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,9 +70,7 @@ fun EditProfileContent(
     onCameraClick: () -> Unit,
     onGalleryClick: () -> Unit,
     onClearError: () -> Unit
-
-    ) {
-
+) {
     var showImagePickerDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -122,7 +112,6 @@ fun EditProfileContent(
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -130,9 +119,7 @@ fun EditProfileContent(
                     .padding(vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    contentAlignment = Alignment.BottomEnd
-                ) {
+                Box(contentAlignment = Alignment.BottomEnd) {
                     Box(
                         modifier = Modifier
                             .size(100.dp)
@@ -158,7 +145,6 @@ fun EditProfileContent(
                         }
                     }
 
-                    // Ikon Kamera diletakkan di luar lingkaran agar posisinya pas di pojok kanan bawah
                     Surface(
                         shape = CircleShape,
                         color = TourizmeBlueMain,
@@ -235,7 +221,7 @@ fun EditProfileContent(
                         label = { Text("Nama Lengkap", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Normal, color = TourizmeTextPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Person,  null, tint = TourizmeBlueMain) },
+                        leadingIcon = { Icon(Icons.Default.Person, null, tint = TourizmeBlueMain) },
                         isError = name.isBlank(),
                         shape = RoundedCornerShape(6.dp),
                         textStyle = TextStyle(
@@ -315,14 +301,16 @@ fun EditProfileContent(
 fun EditProfileScreen(
     onBack: () -> Unit,
     userSession: UserSession,
-    viewModel: ProfileViewModel
+    viewModel: com.example.tourtest.core.network.NetworkProfileViewModel
 ) {
     Log.d("ProfileDebug", "=== EDIT PROFILE SCREEN OPENED ===")
-
     val context = LocalContext.current
 
     val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
-    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val currentUserId = currentUserIdFromStore ?: "GUEST"
+
+    // Ambil data dari NetworkProfileViewModel
+    val currentUser by viewModel.user.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val updateSuccess by viewModel.updateSuccess.collectAsStateWithLifecycle()
@@ -331,35 +319,33 @@ fun EditProfileScreen(
     var name by remember { mutableStateOf("") }
     var nickName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var hasFilledForm by remember { mutableStateOf(false) }
 
-
-    LaunchedEffect(currentUserIdFromStore) {
-        currentUserIdFromStore?.let { userId ->
-            if (userId != "GUEST" && userId.isNotBlank()) {
-                viewModel.loadUser(userId)
-            }
+    // Load profile dari API saat screen dibuka
+    LaunchedEffect(currentUserId) {
+        if (currentUserId != "GUEST" && currentUserId.isNotBlank()) {
+            viewModel.loadUserProfile()
         }
     }
 
+    // Isi field form HANYA sekali saat data pertama kali tersedia
     LaunchedEffect(currentUser) {
-        currentUser?.let { user ->
+        val user = currentUser
+        if (!hasFilledForm && user != null) {
             name = user.name
             nickName = user.nickName
             email = user.email
+            hasFilledForm = true
         }
     }
-
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
-            Log.d("ProfileDebug", "Foto berhasil: ${bitmap.width}x${bitmap.height}")
-//            profileBitmap = bitmap
             viewModel.onProfileBitmapChanged(bitmap)
             Toast.makeText(context, "Foto berhasil diambil", Toast.LENGTH_SHORT).show()
         } else {
-            Log.d("ProfileDebug", "Gagal ambil foto")
             Toast.makeText(context, "Gagal mengambil foto", Toast.LENGTH_SHORT).show()
         }
     }
@@ -381,9 +367,9 @@ fun EditProfileScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            cameraLauncher.launch()
+            cameraLauncher.launch(null)
         } else {
-            Toast.makeText(context, "Izin kamera ditolak. Gagal mengambil gambar.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Izin kamera ditolak.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -397,6 +383,7 @@ fun EditProfileScreen(
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
             Toast.makeText(context, "Profil berhasil diupdate!", Toast.LENGTH_SHORT).show()
+            viewModel.resetUpdateSuccess()
             onBack()
         }
     }
@@ -410,22 +397,20 @@ fun EditProfileScreen(
         isLoading = isLoading,
         isSaving = isLoading,
         error = error,
-        onNameChange = { name = it},
+        onNameChange = { name = it },
         onNickNameChange = { nickName = it },
         onEmailChange = { email = it },
         onBack = onBack,
         onSave = {
             if (!isLoading) {
-                val userId = currentUserIdFromStore ?: "GUEST"
-                if (userId != null || userId != "GUEST") {
-                    viewModel.saveAndUpdateProfile(
-                        userId = userId,
-                        name = name,
-                        nickName = nickName,
-                        email = email,
-                        bitmap = profileBitmap
-                    )
-                }
+                val imageFile: File? = profileBitmap?.toCacheFile(context)
+                viewModel.saveAndUpdateProfile(
+                    userId = currentUserId,
+                    name = name,
+                    nickName = nickName,
+                    email = email,
+                    bitmap = profileBitmap
+                )
             }
         },
         onDeletePhoto = {
@@ -433,7 +418,8 @@ fun EditProfileScreen(
             Toast.makeText(context, "Foto dihapus", Toast.LENGTH_SHORT).show()
         },
         onCameraClick = {
-            requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)        },
+            requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+        },
         onGalleryClick = {
             galleryLauncher.launch("image/*")
         },
@@ -467,4 +453,19 @@ fun EditProfilePreview() {
             onClearError = {}
         )
     }
+}
+
+// 📁 Fungsi Ekstensi Pembantu untuk Mengubah Bitmap menjadi Berkas File Sementara
+fun Bitmap.toCacheFile(context: android.content.Context): File {
+    val file = File(context.cacheDir, "profile_update_${System.currentTimeMillis()}.jpg")
+    file.createNewFile()
+    val bos = java.io.ByteArrayOutputStream()
+    this.compress(Bitmap.CompressFormat.JPEG, 85, bos)
+    val bitmapData = bos.toByteArray()
+
+    val fos = java.io.FileOutputStream(file)
+    fos.write(bitmapData)
+    fos.flush()
+    fos.close()
+    return file
 }

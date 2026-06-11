@@ -30,9 +30,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.tourtest.feature.profile.viewmodel.ChangePasswordViewModel
+import com.example.tourtest.feature.profile.viewmodel.NetworkChangePasswordViewModel // 👈 Import ViewModel baru
 import com.example.tourtest.ui.theme.MontserratFontFamily
 import com.example.tourtest.ui.theme.TourizmeBlueMain
 import com.example.tourtest.ui.theme.TourizmeTextPrimary
@@ -112,7 +111,7 @@ fun ChangePasswordContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)), // Selaras dengan Profile & Edit Profile
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
@@ -313,14 +312,12 @@ fun ChangePasswordContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangePasswordScreen(
     onBack: () -> Unit,
-    viewModel: ChangePasswordViewModel
+    viewModel: NetworkChangePasswordViewModel // 👈 Diubah ke ViewModel Jaringan Baru
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val isSuccess by viewModel.isSuccess.collectAsStateWithLifecycle()
@@ -333,9 +330,7 @@ fun ChangePasswordScreen(
     var showNewPassword by rememberSaveable { mutableStateOf(false) }
     var showConfirmPassword by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadCurrentUser()
-    }
+    // Dihapus: viewModel.loadCurrentUser() karena tidak dipakai lagi saat call update password API
 
     DisposableEffect(Unit) {
         onDispose {
@@ -345,6 +340,7 @@ fun ChangePasswordScreen(
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
+            Toast.makeText(context, "Password berhasil diubah!", Toast.LENGTH_SHORT).show()
             onBack()
         }
     }

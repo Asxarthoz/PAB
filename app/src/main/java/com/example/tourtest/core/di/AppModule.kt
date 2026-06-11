@@ -24,6 +24,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Named
+import okhttp3.Interceptor
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -93,26 +95,46 @@ object AppModule {
     fun providePasswordManager(@ApplicationContext context: Context): PasswordManager =
         PasswordManager(context)
 
-    // ── Network (untuk NetworkDetailViewModel — WIP) ──────────────────────────
+
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient =
-        OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            })
+    fun provideOkHttpClient(): OkHttpClient {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        val ngrokInterceptor = Interceptor { chain ->
+            val newRequest = chain.request().newBuilder()
+                .header("ngrok-skip-browser-warning", "true")
+                .header("Accept", "application/json")  // Paksa Laravel return JSON, bukan redirect HTML
+                .build()
+            chain.proceed(newRequest)
+        }
+
+        return OkHttpClient.Builder()
+            .addInterceptor(ngrokInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .build()
+    }
 
     @Provides
     @Singleton
-    fun provideTourizmeApiService(client: OkHttpClient): TourizmeApiService =
-        Retrofit.Builder()
-            .baseUrl("https://tourizme.example.com/") // ganti dengan base URL server kalian
+    fun provideTourizmeApiService(client: OkHttpClient): TourizmeApiService {
+        val gson = com.google.gson.GsonBuilder()
+            .setLenient()
+            .create()
+
+        return Retrofit.Builder()
+            .baseUrl("https://spinner-unnamed-oboe.ngrok-free.dev/api/")
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
             .create(TourizmeApiService::class.java)
+    }
 
     @Provides
     @Singleton

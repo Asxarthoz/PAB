@@ -35,7 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.ShimmerPlaceholder
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.detaildestination.viewmodel.DetailViewModel
+import com.example.tourtest.core.network.NetworkDetailViewModel
 import com.example.tourtest.model.Destination
 import com.example.tourtest.model.Review
 import com.example.tourtest.ui.theme.InterFontFamily
@@ -45,21 +45,22 @@ import com.example.tourtest.ui.theme.TourizmeBlueMain
 import com.example.tourtest.ui.theme.TourizmeTextPrimary
 import kotlinx.coroutines.launch
 import scheduleNotification
+import java.util.Locale
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Composable utama konten layar detail destinasi
 // ─────────────────────────────────────────────────────────────────────────────
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationDetailContent(
     destination: Destination?,
     isFavorite: Boolean,
-    isItineraried: Boolean,
+    _isItineraried: Boolean,  // ← tambah underscore untuk hilangkan warning
     isLoading: Boolean,
     scrollState: ScrollState,
     currentUserId: String,
-    // Ulasan milik user aktif: null = belum pernah mengulas
     userReview: Review?,
     onBack: () -> Unit,
     onFavoriteClick: () -> Unit,
@@ -69,16 +70,12 @@ fun DestinationDetailContent(
     onUpdateReview: (newRating: Float, newComment: String) -> Unit,
     onDeleteMyReview: () -> Unit
 ) {
-    // State form baru (hanya dipakai saat userReview == null)
-    var inputRating  by remember { mutableStateOf(5f) }
+    var inputRating by remember { mutableStateOf(5f) }
     var inputComment by remember { mutableStateOf("") }
+    var isEditing by remember { mutableStateOf(false) }
+    var editRating by remember { mutableStateOf(0f) }
+    var editComment by remember { mutableStateOf("") }
 
-    // State form edit (hanya dipakai saat userReview != null && isEditing)
-    var isEditing       by remember { mutableStateOf(false) }
-    var editRating      by remember { mutableStateOf(0f) }
-    var editComment     by remember { mutableStateOf("") }
-
-    // Reset edit state saat userReview berubah (misal setelah hapus/simpan)
     LaunchedEffect(userReview) {
         if (userReview == null) {
             isEditing = false
@@ -89,7 +86,6 @@ fun DestinationDetailContent(
         }
     }
 
-    // Tab: 0 = Tentang, 1 = Ulasan
     var selectedTab by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -175,14 +171,12 @@ fun DestinationDetailContent(
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator(color = TourizmeBlueMain) }
             }
-
             destination == null -> {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) { Text("Destinasi tidak ditemukan", fontFamily = MontserratFontFamily) }
             }
-
             else -> {
                 Column(
                     modifier = Modifier
@@ -295,7 +289,7 @@ fun DestinationDetailContent(
                                     Icon(Icons.Filled.Star, contentDescription = null, tint = Color(0xFFFFC107), modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = String.format("%.1f", destination.averageRating),
+                                        text = String.format(Locale.US, "%.1f", destination.averageRating),
                                         fontWeight = FontWeight.SemiBold,
                                         color = TourizmeBlueMain,
                                         fontSize = 14.sp,
@@ -307,9 +301,7 @@ fun DestinationDetailContent(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         listOf("Tentang", "Ulasan").forEachIndexed { index, label ->
                             Column(
                                 modifier = Modifier
@@ -354,7 +346,6 @@ fun DestinationDetailContent(
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
-
                         1 -> {
                             Column(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -408,9 +399,9 @@ fun DestinationDetailContent(
                                         MyReviewDisplay(
                                             review = userReview,
                                             onEditClick = {
-                                                editRating  = userReview.ratingGiven
+                                                editRating = userReview.ratingGiven
                                                 editComment = userReview.comment
-                                                isEditing   = true
+                                                isEditing = true
                                                 coroutineScope.launch {
                                                     scrollState.animateScrollTo(scrollState.maxValue)
                                                 }
@@ -419,23 +410,22 @@ fun DestinationDetailContent(
                                         )
                                     } else {
                                         ReviewFormEdit(
-                                            editRating  = editRating,
+                                            editRating = editRating,
                                             editComment = editComment,
-                                            onRatingChange  = { editRating = it },
+                                            onRatingChange = { editRating = it },
                                             onCommentChange = { editComment = it },
                                             onSave = {
                                                 onUpdateReview(editRating, editComment)
                                                 isEditing = false
                                             },
                                             onCancel = {
-                                                isEditing   = false
-                                                editRating  = 0f
+                                                isEditing = false
+                                                editRating = 0f
                                                 editComment = ""
                                             }
                                         )
                                     }
                                 }
-
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
@@ -445,7 +435,6 @@ fun DestinationDetailContent(
         }
     }
 }
-
 
 @Composable
 private fun ReviewCard(
@@ -459,13 +448,9 @@ private fun ReviewCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(
-            1.dp,
-            if (isOwner) TourizmeBlueMain.copy(alpha = 0.3f) else Color(0xFFE8EDF2)
-        )
+        border = BorderStroke(1.dp, if (isOwner) TourizmeBlueMain.copy(alpha = 0.3f) else Color(0xFFE8EDF2))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -495,7 +480,6 @@ private fun ReviewCard(
                         Text("Baru-baru ini", color = Color.Gray, fontSize = 11.sp, fontFamily = MontserratFontFamily)
                     }
                 }
-
                 if (isOwner && showActions) {
                     Row {
                         IconButton(onClick = onEditClick, modifier = Modifier.size(32.dp)) {
@@ -513,7 +497,6 @@ private fun ReviewCard(
                     }
                 }
             }
-
             if (isOwner && review.ratingGiven > 0f) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -524,13 +507,11 @@ private fun ReviewCard(
                     Text("${review.ratingGiven.toInt()}/5", fontSize = 11.sp, color = Color.Gray, fontFamily = MontserratFontFamily)
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
             Text(review.comment, fontSize = 13.sp, color = Color.DarkGray, lineHeight = 19.sp, fontFamily = MontserratFontFamily)
         }
     }
 }
-
 
 @Composable
 private fun ReviewFormNew(
@@ -635,7 +616,6 @@ private fun MyReviewDisplay(
     }
 }
 
-
 @Composable
 private fun ReviewFormEdit(
     editRating: Float,
@@ -703,26 +683,32 @@ private fun ReviewFormEdit(
     }
 }
 
-
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN SCREEN - Yang menerima destinationId dari navigasi
+// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationDetailScreen(
-    viewModel: DetailViewModel,
+    destinationId: String,
+    viewModel: NetworkDetailViewModel,
     userSession: UserSession,
     onBack: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
+    LaunchedEffect(destinationId) {
+        viewModel.initializeData(destinationId)
+    }
+
     val context = LocalContext.current
-    val destination      by viewModel.destination.collectAsStateWithLifecycle()
-    val isFavorite       by viewModel.isFavorite.collectAsStateWithLifecycle()
-    val isItineraried    by viewModel.isPlanned.collectAsStateWithLifecycle()
-    val isLoading        by viewModel.isLoading.collectAsStateWithLifecycle()
-    val userReview       by viewModel.userReview.collectAsStateWithLifecycle()
-    val currentUserId    by userSession.userId.collectAsState(initial = "")
+    val destination by viewModel.destination.collectAsStateWithLifecycle()
+    val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
+    val isItineraried by viewModel.isPlanned.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val userReview by viewModel.userReview.collectAsStateWithLifecycle()
+    val currentUserId by userSession.userId.collectAsState(initial = "")
 
     val scrollState = rememberScrollState()
-
     var showDeleteFavoriteDialog by remember { mutableStateOf(false) }
     var selectedDestinationForItinerary by remember { mutableStateOf<Destination?>(null) }
     var showLoginPromptDialog by remember { mutableStateOf(false) }
@@ -740,7 +726,6 @@ fun DestinationDetailScreen(
         }
     }
 
-    // Dialog konfirmasi hapus favorit
     TourizmeDeleteDialog(
         show = showDeleteFavoriteDialog,
         message = "Yakin ingin menghapus destinasi ini dari favorit?",
@@ -752,7 +737,6 @@ fun DestinationDetailScreen(
         onDismiss = { showDeleteFavoriteDialog = false }
     )
 
-    // Dialog date picker itinerary
     selectedDestinationForItinerary?.let { dest ->
         TourizmeDatePicker(
             destination = dest,
@@ -770,7 +754,6 @@ fun DestinationDetailScreen(
         )
     }
 
-    // Dialog prompt login
     if (showLoginPromptDialog) {
         AlertDialog(
             onDismissRequest = { showLoginPromptDialog = false },
@@ -786,14 +769,14 @@ fun DestinationDetailScreen(
     }
 
     DestinationDetailContent(
-        destination   = destination,
-        isFavorite    = isFavorite,
-        isItineraried = isItineraried,
-        isLoading     = isLoading,
-        scrollState   = scrollState,
+        destination = destination,
+        isFavorite = isFavorite,
+        _isItineraried = isItineraried,
+        isLoading = isLoading,
+        scrollState = scrollState,
         currentUserId = currentUserId ?: "",
-        userReview    = userReview,
-        onBack        = onBack,
+        userReview = userReview,
+        onBack = onBack,
         onFavoriteClick = {
             if (currentUserId.isNullOrBlank() || currentUserId == "GUEST") {
                 showLoginPromptDialog = true
@@ -823,38 +806,52 @@ fun DestinationDetailScreen(
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Preview
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Preview(showSystemUi = true)
 @Composable
 fun DestinationDetailPreview() {
-    val sampleReview = Review(userId = "user1", userName = "Amba", ratingGiven = 5f, comment = "Sangat indah dan menakjubkan!")
+    val sampleReview = Review(
+        // ❌ HAPUS: id = "1",
+        userId = "user1",
+        userName = "Amba",
+        ratingGiven = 5f,
+        comment = "Sangat indah dan menakjubkan!"
+    )
     MaterialTheme {
         DestinationDetailContent(
             destination = Destination(
-                id = "1", name = "Candi Borobudur", location = "Magelang",
+                id = "1",
+                name = "Candi Borobudur",
+                location = "Magelang",
+                price = "50000",
+                imageUrl = "",
+                gmapUrl = "",
                 description = "Candi Buddha terbesar di dunia yang dibangun pada abad ke-9.",
-                price = "50.000", imageUrl = "", gmapUrl = "",
                 averageRating = 4.8f,
                 reviews = listOf(
                     sampleReview,
-                    Review("user2", "Budi", 4f, "Tempatnya bagus, tapi agak ramai.")
-                )
+                    Review(
+                        // ❌ HAPUS: "2",
+                        userId = "user2",
+                        userName = "Budi",
+                        ratingGiven = 4f,
+                        comment = "Tempatnya bagus, tapi agak ramai."
+                    )
+                ),
+                openTime = "08:00",
+                closeTime = "17:00"
             ),
-            isFavorite    = true,
-            isItineraried = false,
-            isLoading     = false,
-            scrollState   = rememberScrollState(),
+            isFavorite = true,
+            _isItineraried = false,
+            isLoading = false,
+            scrollState = rememberScrollState(),
             currentUserId = "user1",
-            userReview    = sampleReview,
-            onBack        = {},
-            onFavoriteClick  = {},
-            onCalendarClick  = {},
-            onOpenMaps       = {},
-            onSubmitReview   = { _, _ -> },
-            onUpdateReview   = { _, _ -> },
+            userReview = sampleReview,
+            onBack = {},
+            onFavoriteClick = {},
+            onCalendarClick = {},
+            onOpenMaps = {},
+            onSubmitReview = { _, _ -> },
+            onUpdateReview = { _, _ -> },
             onDeleteMyReview = {}
         )
     }

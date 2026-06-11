@@ -1,57 +1,72 @@
 package com.example.tourtest.core.network
 
-import com.example.tourtest.core.network.model.*
-import com.example.tourtest.model.*
-import java.util.Locale
+import com.example.tourtest.core.network.model.DestinationResponse
+import com.example.tourtest.core.network.model.ReviewResponse
+import com.example.tourtest.core.network.model.WishlistResponse
+import com.example.tourtest.core.network.model.UserResponse // 👈 PERBAIKAN: Import UserResponse yang benar
+import com.example.tourtest.model.Destination
+import com.example.tourtest.model.Review
+import com.example.tourtest.model.Users
+import com.example.tourtest.model.Favorite
+
 
 fun DestinationResponse.toDomainModel(): Destination {
-    // 1. Map list review dari server menggunakan mapper khusus ReviewResponse
-    val mappedReviews = this.reviews?.map { it.toDomainModel() } ?: emptyList()
+    val imageUrl = this.thumbnail.orEmpty()
 
-    // 2. Perhitungan rata-rata rating yang presisi mengikuti standar HomepageManager.kt kamu
-    val finalAvgRating = this.rating ?: if (mappedReviews.isNotEmpty()) {
-        val validRatings = mappedReviews.filter { it.ratingGiven > 0f }
-        if (validRatings.isNotEmpty()) {
-            val total = validRatings.sumOf { it.ratingGiven.toDouble() }
-            String.format(Locale.US, "%.1f", total / validRatings.size).toFloat()
-        } else 0f
-    } else 0f
+    // Parse ISO timestamp ke format HH:mm, contoh: "2026-06-11T09:00:00.000000Z" → "09:00"
+    fun parseTime(raw: String): String {
+        return try {
+            raw.substring(11, 16)  // ambil "HH:mm" dari "YYYY-MM-DDTHH:MM:SS.000000Z"
+        } catch (e: Exception) {
+            raw
+        }
+    }
 
     return Destination(
-        id = this.id.trim(),               // Menggunakan id String langsung dari DestinationResponse kamu
+        id = this.id.toString(),
         name = this.name,
         location = this.location,
-        price = this.price,                // Menyesuaikan price String bawaan response kamu
-        imageUrl = this.image,             // Menyesuaikan @SerializedName("image") dari file kamu
-        gmapUrl = this.gmaps,              // Menyesuaikan @SerializedName("gmaps") dari file kamu
+        price = this.price.toString(),
+        imageUrl = imageUrl,
+        gmapUrl = "",
         description = this.description,
-        averageRating = finalAvgRating,
-        reviews = mappedReviews,
-        // Jam operasional lokal tetap dipertahankan aman sebagai fallback default
-        openTime = "00:00",
-        closeTime = "00:00"
+        averageRating = this.averageRating?.toFloat() ?: 0f,
+        reviews = this.reviews?.map { it.toDomainModel() } ?: emptyList(),
+        openTime = parseTime(this.openTime),
+        closeTime = parseTime(this.closeTime)
     )
 }
 
+// 2. PEMETAAN REVIEW
 fun ReviewResponse.toDomainModel(): Review {
     return Review(
-        userId = this.userId.trim(),
-        // Mengambil nama dari nested object user (UsersResponse) jika tersedia dari server
-        userName = this.user?.name ?: "Wisatawan Tourizme",
-        ratingGiven = this.rating,
-        comment = this.comment             // DISESUAIKAN: menggunakan .comment sesuai isi file ReviewResponse.kt kamu
+        // Gunakan userId jika ada, fallback ke username agar checkUserReviewStatus bisa cocok
+        userId = this.userId?.toString() ?: this.username,
+        userName = this.username,
+        ratingGiven = this.rating.toFloat(),
+        comment = this.description
     )
 }
 
-fun UsersResponse.toDomainModel(): Users {
+// 3. PEMETAAN USER / PROFILE
+fun UserResponse.toDomainModel(): Users {
     return Users(
-        id = this.id.trim(),
-        name = this.name,
-        nickName = this.name.substringBefore(" "), // Ekstrak nama panggilan secara otomatis
+        id = this.id.toString(),
+        name = this.fullname,
+        nickName = this.username,
         email = this.email,
-        password = "",                     // Keamanan: kosongkan password di sisi client
-        role = "wisatawan",
+        password = "",
+        role = this.role,
         isVerified = false,
-        profileImage = this.image          // Mengambil path foto profil dari properti 'image' kamu
+        profileImage = this.profilePicture ?: ""
+    )
+}
+
+// 4. PEMETAAN WISHLIST
+fun WishlistResponse.toDomainModel(): Favorite {
+    return Favorite(
+        id = this.id.toString(),
+        userId = "",
+        destinationId = this.destinationId.toString()
     )
 }

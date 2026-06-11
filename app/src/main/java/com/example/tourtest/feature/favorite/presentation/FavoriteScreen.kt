@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Looks
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,21 +37,19 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.SubcomposeAsyncImage
 import com.example.tourtest.core.components.DestinationCard
 import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.core.network.NetworkFavoriteViewModel
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
-import com.example.tourtest.feature.favorite.viewmodel.FavoriteViewModel
 import com.example.tourtest.model.Destination
-import com.example.tourtest.model.Favorite
 import com.example.tourtest.provider.homepage.DestinationProvider
 import com.example.tourtest.ui.theme.MontserratFontFamily
 import com.example.tourtest.ui.theme.TourizmeBlueMain
 import com.example.tourtest.ui.theme.TourizmeTheme
+import androidx.core.os.bundleOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,7 +162,7 @@ fun FavoriteGuestContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoriteScreen(
-    viewModel: FavoriteViewModel,
+    viewModel: NetworkFavoriteViewModel,
     userSession: UserSession,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToNotification: () -> Unit,
@@ -209,7 +205,7 @@ fun FavoriteScreen(
         onConfirm = {
             selectedDestinationId?.let { id ->
                 viewModel.removeFromFavorite(id)
-                Toast.makeText(context, "Berhasil dihapus dari favorit", android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Berhasil dihapus dari favorit", Toast.LENGTH_SHORT).show()
             }
             showDeleteFavoriteDialog = false
             selectedDestinationId = null
@@ -228,8 +224,8 @@ fun FavoriteScreen(
                 if (currentUserId.isBlank()) {
                     Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
                 } else {
-                    selectedDestinationForItinerary?.let { destination ->
-                        val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                    selectedDestinationForItinerary?.let { dest ->
+                        val success = ItineraryManager.addDestination(context, currentUserId, dest.id, formattedDate)
                         if (success) {
                             refreshItineraryStatus()
                             Toast.makeText(context, "Berhasil disimpan ke daftar rencana", Toast.LENGTH_SHORT).show()
@@ -263,7 +259,7 @@ fun FavoriteScreen(
             onNavigateToDetail = onNavigateToDetail,
             onWishListClick = { destination ->
                 if (currentUserId.isBlank()) {
-                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
                 } else {
                     if (favoriteIds.contains(destination.id)) {
                         selectedDestinationId = destination.id
@@ -273,18 +269,8 @@ fun FavoriteScreen(
                         Toast.makeText(context, "Disimpan ke favorit", Toast.LENGTH_SHORT).show()
                     }
                 }
-            },onItineraryClick = { destination ->
-//            if (currentUserId.isBlank()) {
-//                Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
-//            } else {
-//                val success = ItineraryManager.addDestination(context, currentUserId, destination.id, selectedDate)
-//                if (success) {
-//                    refreshItineraryStatus()
-//                    Toast.makeText(context, "Berhasil disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-//                } else {
-//                    Toast.makeText(context, "Gagal disimpan ke daftar rencana", android.widget.Toast.LENGTH_SHORT).show()
-//                }
-//            }
+            },
+            onItineraryClick = { destination ->
                 selectedDestinationForItinerary = destination
             },
             onClick = { destination -> onNavigateToDetail(destination.id) }
@@ -315,15 +301,23 @@ fun FavoritePreview(
     }
 }
 
-@Preview(showSystemUi = true, name = "Guest Favorite Screen Preview")
+@Preview(showSystemUi = true, name = "Favorite Screen Preview")
 @Composable
-fun FavoriteGuestPreview() {
+fun FavoritePreview() { // 👈 Hapus parameter di sini
     TourizmeTheme {
-        FavoriteGuestContent(
+        FavoriteContent(
             searchQuery = "",
+            favoriteDestinations = emptyList(), // 👈 Ganti jadi list kosong
+            favoriteIds = emptySet(),
+            itinerariedIds = setOf("1"),
+            isLoading = false,
+            listState = rememberLazyListState(),
             onSearchQueryChange = {},
             onNotificationClick = {},
-            onNavigateToLogin = {}
+            onNavigateToDetail = { id -> },
+            onWishListClick = { destination -> },
+            onItineraryClick = { destination -> },
+            onClick = { destination -> }
         )
     }
 }

@@ -1,4 +1,5 @@
 package com.example.tourtest.feature.itinerary.presentation
+
 import TourizmeDatePicker
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -45,15 +46,13 @@ import com.example.tourtest.core.components.TourizmeDeleteDialog
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.components.TourizmeSimpleHeader
 import com.example.tourtest.core.data.UserSession
+import com.example.tourtest.core.network.NetworkItineraryViewModel
 import com.example.tourtest.feature.itinerary.manager.ItineraryManager
 import com.example.tourtest.feature.favorite.manager.FavoriteManager
-import com.example.tourtest.feature.itinerary.viewmodel.ItineraryViewModel
 import com.example.tourtest.model.Destination
 import com.example.tourtest.model.ItineraryWithDestination
 import com.example.tourtest.ui.theme.MontserratFontFamily
 import com.example.tourtest.ui.theme.TourizmeBlueMain
-import kotlin.collections.component1
-import kotlin.collections.component2
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +104,6 @@ fun ItineraryContent(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         groupedItinerary.forEach { (date, items) ->
-
                             item {
                                 Surface(
                                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -155,7 +153,6 @@ fun ItineraryGuestContent(
     onSearchQueryChange: (String) -> Unit,
     onNotificationClick: () -> Unit,
     onNavigateToLogin: () -> Unit
-
 ) {
     Scaffold(
         topBar = {
@@ -181,15 +178,14 @@ fun ItineraryGuestContent(
                         onClick = onNavigateToLogin,
                         modifier = Modifier.fillMaxWidth(0.7f),
                         colors = ButtonDefaults.buttonColors(
-                                containerColor = TourizmeBlueMain,
-                                contentColor = Color.White
+                            containerColor = TourizmeBlueMain,
+                            contentColor = Color.White
                         )
                     ) {
                         Text("Login Sekarang!", fontFamily = MontserratFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                     }
                 }
             )
-
         }
     }
 }
@@ -197,7 +193,7 @@ fun ItineraryGuestContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItineraryScreen(
-    viewModel: ItineraryViewModel,
+    viewModel: NetworkItineraryViewModel,
     userSession: UserSession,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToNotification: () -> Unit,
@@ -239,14 +235,15 @@ fun ItineraryScreen(
             viewModel.loadItineraries()
         }
     }
+
     selectedDestinationForReschedule?.let { destination ->
         TourizmeDatePicker(
             destination = destination,
             onDismiss = { selectedDestinationForReschedule = null },
             onDateSelected = { formattedDate, targetTimeMillis ->
                 if (currentUserId.isNotBlank()) {
-                    selectedDestinationForReschedule?.let { destination ->
-                        val success = ItineraryManager.addDestination(context, currentUserId, destination.id, formattedDate)
+                    selectedDestinationForReschedule?.let { dest ->
+                        val success = ItineraryManager.addDestination(context, currentUserId, dest.id, formattedDate)
                         if (success) {
                             viewModel.loadItineraries()
                             refreshStatus()
@@ -265,19 +262,20 @@ fun ItineraryScreen(
         message = "Yakin hapus destinasi dari daftar rencana?",
         onConfirm = {
             selectedItinerary?.let { item ->
+                // ✅ PERBAIKAN: gunakan parameter yang benar
                 viewModel.removeFromItinerary(
                     itineraryId = item.itinerary.id,
-                    date = item.itinerary.date
+                    _date = item.itinerary.date
                 )
-
                 refreshStatus()
-                Toast.makeText(context, "Berhasil dihapus dari rencana", android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Berhasil dihapus dari rencana", Toast.LENGTH_SHORT).show()
             }
             showDeleteItineraryDialog = false
             selectedItinerary = null
-        }, onDismiss = {
+        },
+        onDismiss = {
             showDeleteItineraryDialog = false
-            selectedItinerary  = null
+            selectedItinerary = null
         }
     )
 
@@ -295,7 +293,7 @@ fun ItineraryScreen(
         onDismiss = { showDeleteFavoriteDialog = false }
     )
 
-    if(currentUserId == "GUEST" || currentUserId.isBlank()) {
+    if (currentUserId == "GUEST" || currentUserId.isBlank()) {
         ItineraryGuestContent(
             searchQuery = searchQuery,
             onSearchQueryChange = { viewModel.updateSearchQuery(it) },
@@ -309,13 +307,13 @@ fun ItineraryScreen(
             favoriteIds = favoriteIds,
             isLoading = isLoading,
             error = error,
-            listState = rememberLazyListState(),
+            listState = listState,
             onSearchQueryChange = { viewModel.updateSearchQuery(it) },
             onNotificationClick = onNavigateToNotification,
             onNavigateToDetail = onNavigateToDetail,
             onWishListClick = { destination ->
                 if (currentUserId.isBlank()) {
-                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", android.widget.Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Gagal: User ID tidak ditemukan!", Toast.LENGTH_SHORT).show()
                 } else {
                     if (favoriteIds.contains(destination.id)) {
                         selectedDestinationId = destination.id
@@ -350,11 +348,11 @@ fun ItineraryPreview() {
             listState = rememberLazyListState(),
             onSearchQueryChange = {},
             onNotificationClick = {},
-            onNavigateToDetail = {},
-            onWishListClick = {},
-            onClick = {},
-            onDeleteItineraryClick = {},
-            onItineraryClick = {}
+            onNavigateToDetail = { id -> },                // 👈 Diberi penampung String ID
+            onWishListClick = { destination -> },          // 👈 Diberi penampung Destination
+            onClick = { destination -> },                  // 👈 Diberi penampung Destination
+            onDeleteItineraryClick = { itinerary -> },    // 👈 Diberi penampung ItineraryWithDestination
+            onItineraryClick = { destination -> }          // 👈 Diberi penampung Destination
         )
     }
 }

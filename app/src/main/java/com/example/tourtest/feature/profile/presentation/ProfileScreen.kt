@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -36,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.tourtest.core.components.TourizmeEmptyState
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
+import com.example.tourtest.core.network.NetworkProfileViewModel
 import com.example.tourtest.model.Users
 import com.example.tourtest.ui.theme.MontserratFontFamily
 import com.example.tourtest.ui.theme.TourizmeBlueMain
@@ -54,12 +53,11 @@ fun ProfileContent(
     onLogoutClick: () -> Unit,
     onImageClick: () -> Unit,
     onBackToLogin: () -> Unit
-    ) {
-
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profil Wisatawan", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp,) },
+                title = { Text("Profil Wisatawan", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = TourizmeBlueMain
                 ),
@@ -97,7 +95,7 @@ fun ProfileContent(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = error!!,
+                            text = error,
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -130,9 +128,7 @@ fun ProfileContent(
                                 .size(100.dp)
                                 .clip(CircleShape)
                                 .background(color = Color(0xff52A0C9).copy(alpha = 0.4f))
-                                .clickable { profileBitmap?.let { bitmap ->
-                                    onImageClick() }
-                                           },
+                                .clickable { if (profileBitmap != null) onImageClick() },
                             contentAlignment = Alignment.Center
                         ) {
                             if (profileBitmap != null) {
@@ -171,13 +167,9 @@ fun ProfileContent(
                         Spacer(modifier = Modifier.height(8.dp))
                         val roleLabel = when (user.role) {
                             "admin" -> "Administrator"
-                            "mitra" -> if (user.isVerified) "Mitra Terverifikasi" else "Mitra (Belum Verifikasi)"
+                            "bisnis_owner" -> if (user.isVerified) "Mitra Terverifikasi" else "Mitra (Belum Verifikasi)"
                             else -> "Wisatawan"
                         }
-                        val badgeColor = if (user.role == "mitra" && !user.isVerified)
-                            MaterialTheme.colorScheme.errorContainer
-                        else
-                            MaterialTheme.colorScheme.secondaryContainer
 
                         Surface(
                             modifier = Modifier.width(150.dp),
@@ -231,7 +223,7 @@ fun ProfileContent(
                             )
                             ProfileRowItem(
                                 label = "Kata Sandi",
-                                value = "*".repeat(user.password.length).ifEmpty { "********" },
+                                value = "********",
                                 icon = Icons.Rounded.Lock
                             )
                         }
@@ -294,7 +286,6 @@ fun ProfileContent(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
-
                 }
             }
         }
@@ -311,11 +302,6 @@ fun ProfileGuestContent(
         topBar = {
             TopAppBar(
                 title = { Text("Profil Wisatawan", fontFamily = MontserratFontFamily, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 24.sp) },
-//                navigationIcon = {
-//                    IconButton(onClick = onBack) {
-//                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-//                    }
-//                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = TourizmeBlueMain),
                 windowInsets = WindowInsets(0.dp)
             )
@@ -343,7 +329,6 @@ fun ProfileGuestContent(
                     }
                 }
             )
-
         }
     }
 }
@@ -351,7 +336,7 @@ fun ProfileGuestContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel,
+    viewModel: NetworkProfileViewModel,
     userSession: UserSession,
     onLogout: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
@@ -359,27 +344,25 @@ fun ProfileScreen(
     onNavigateToFullScreenImage: () -> Unit,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val currentUserIdFromStore by userSession.userId.collectAsState(initial = null)
     val currentUserId = currentUserIdFromStore ?: "GUEST"
 
-    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    // ✅ Perbaikan: gunakan state yang benar dari NetworkProfileViewModel
+    val currentUser by viewModel.user.collectAsStateWithLifecycle()
     val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(currentUserIdFromStore) {
-        currentUserIdFromStore?.let { id ->
-            if (id != "GUEST" && id.isNotBlank()) {
-                viewModel.loadUser(id)
-            }
+    // Trigger load profile setiap kali userId berubah (termasuk saat pertama kali tersedia)
+    LaunchedEffect(currentUserId) {
+        if (currentUserId != "GUEST" && currentUserId.isNotBlank()) {
+            viewModel.loadUserProfile()
         }
     }
 
-
-    if(showLogoutDialog) {
+    if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             title = { Text(text = "Konfirmasi Keluar") },
@@ -390,15 +373,12 @@ fun ProfileScreen(
                         showLogoutDialog = false
                         onLogout()
                     }
-
                 ) {
                     Text("Keluar", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                }) {
+                TextButton(onClick = { showLogoutDialog = false }) {
                     Text(text = "Batal")
                 }
             }
@@ -439,13 +419,13 @@ fun ProfileRowItem(label: String, value: String, icon: ImageVector) {
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(text = label, fontSize = 12.sp, color = TourizmeBlueMain, fontFamily = MontserratFontFamily, fontWeight = FontWeight.Medium)
-            Text(text = value, fontSize = 16.sp, color = TourizmeTextPrimary , fontFamily = MontserratFontFamily , fontWeight = FontWeight.Medium)
+            Text(text = value, fontSize = 16.sp, color = TourizmeTextPrimary, fontFamily = MontserratFontFamily, fontWeight = FontWeight.Medium)
         }
     }
 }
 
 @Composable
-fun ActionRowItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+fun ActionRowItem(title: String, icon: ImageVector, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -476,10 +456,11 @@ fun ProfilePreview() {
                 id = "123",
                 name = "Zidan Dicky Ambasuha",
                 nickName = "Zidan",
-                email = "qoqo@student.uns.ac.id",
-                password = "password123",
-                role = "wisatawan",
-                isVerified = true
+                email = "zidan@example.com",
+                password = "",
+                role = "tourist",
+                isVerified = true,
+                profileImage = null
             ),
             profileBitmap = null,
             isLoading = false,

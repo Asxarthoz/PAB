@@ -7,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tourtest.core.data.UserSession
-import com.example.tourtest.feature.auth.manager.AuthManager
+import com.example.tourtest.core.network.NetworkApiManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -20,8 +20,10 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val userSession: UserSession
+    private val userSession: UserSession,
+    private val networkApiManager: NetworkApiManager
 ) : ViewModel() {
+
     var isLogin by mutableStateOf(true)
     var name by mutableStateOf("")
     var nickname by mutableStateOf("")
@@ -58,9 +60,8 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                AuthManager.setCurrentUser("GUEST")
+                userSession.clearSession()
                 userSession.saveSession("GUEST", "GUEST")
-
                 _loginSuccess.send(Unit)
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -78,7 +79,7 @@ class AuthViewModel @Inject constructor(
         isLoading = true
         errorMessage = null
 
-        viewModelScope.launch(Dispatchers.IO){
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (isLogin) {
                     performLogin()
@@ -98,67 +99,61 @@ class AuthViewModel @Inject constructor(
     }
 
     private suspend fun performLogin() {
-        if (emailOrNickname.isBlank()) {
-            errorMessage = "Email atau Nickname tidak boleh kosong"
-            return
-        }
-        if (password.isBlank()) {
-            errorMessage = "Password tidak boleh kosong"
-            return
-        }
+        val identity = emailOrNickname.trim()
+        val pwd = password.trim()
 
-        val success = AuthManager.loginUser(context, emailOrNickname.trim(), password.trim())
-        if (success) {
-            val user = AuthManager.getLoggedInUser(context, emailOrNickname.trim(), password.trim())
-            user?.let {
-                AuthManager.setCurrentUser(it.id)
-                userSession.saveSession(it.id, it.nickName)
-                _loginSuccess.send(Unit)
-            } ?: run {
-                errorMessage = "Gagal mengambil data user"
-            }
+        println("🔐 LOGIN: identity=$identity")
+
+        val response = networkApiManager.login(identity, pwd)
+
+        println("🔐 RESPONSE: $response")
+
+        if (response != null) {
+            println("✅ TOKEN: ${response.accessToken}")
+            // Simpan token dulu
+            userSession.saveToken(response.accessToken)
+
+            // Ambil data user dari /me untuk mendapatkan ID numerik yang benar
+            val userResponse = networkApiManager.getCurrentUser(response.accessToken)
+            val userId = userResponse?.id?.toString() ?: response.username
+
+            println("✅ USER ID: $userId, USERNAME: ${response.username}")
+            userSession.saveSession(userId, response.username)
+            _loginSuccess.send(Unit)
         } else {
-            errorMessage = "Email/Nickname atau password salah!"
+            println("❌ LOGIN GAGAL")
+            errorMessage = "Login gagal. Periksa email/username dan password Anda!"
         }
     }
 
     private suspend fun performRegister() {
         when {
             name.isBlank() -> errorMessage = "Nama lengkap tidak boleh kosong"
-            nickname.isBlank() -> errorMessage = "Nickname tidak boleh kosong"
+            nickname.isBlank() -> errorMessage = "Username tidak boleh kosong"
             emailOrNickname.isBlank() -> errorMessage = "Email tidak boleh kosong"
             !android.util.Patterns.EMAIL_ADDRESS.matcher(emailOrNickname).matches() ->
                 errorMessage = "Email tidak valid"
-
             password.length < 6 -> errorMessage = "Password minimal 6 karakter"
-            password != confirmPassword -> errorMessage =
-                "Konfirmasi password tidak cocok"
-
+            password != confirmPassword -> errorMessage = "Konfirmasi password tidak cocok"
             else -> {
-                val success = AuthManager.registerUser(
-                    context = context,
-                    name = name.trim(),
-                    nickname = nickname.trim(),
+                // ✅ REGISTER VIA API
+                val response = networkApiManager.register(
+                    fullname = name.trim(),
+                    username = nickname.trim(),
                     email = emailOrNickname.trim(),
-                    password = password.trim()
+                    password = password.trim(),
+                    role = "tourist"
                 )
 
-                if (success) {
-                    val loginSuccess = AuthManager.loginUser(
-                        context = context,
-                        inputEmailOrNickName = emailOrNickname,
-                        inputPassword = password
-                    )
-                    if (loginSuccess) {
-                        val user = AuthManager.getLoggedInUser(
-                            context = context,
-                            emailOrNickName = emailOrNickname,
-                            password = password
-                        )
-                        user?.let {
-                            AuthManager.setCurrentUser(it.id)
-                            userSession.saveSession(it.id, it.nickName)
-                        }
+                if (response != null) {
+                    // Registrasi berhasil, langsung login
+                    val loginResponse = networkApiManager.login(emailOrNickname.trim(), password.trim())
+                    if (loginResponse != null) {
+                        userSession.saveToken(loginResponse.accessToken)
+                        // Ambil ID numerik dari /me
+                        val userResponse = networkApiManager.getCurrentUser(loginResponse.accessToken)
+                        val userId = userResponse?.id?.toString() ?: loginResponse.username
+                        userSession.saveSession(userId, loginResponse.username)
                         _loginSuccess.send(Unit)
                     } else {
                         errorMessage = "Registrasi berhasil, silakan login"
@@ -168,8 +163,7 @@ class AuthViewModel @Inject constructor(
                         isLoading = false
                     }
                 } else {
-                    errorMessage =
-                        "Registrasi gagal. Email atau Nickname sudah digunakan!"
+                    errorMessage = "Registrasi gagal. Email atau Username sudah digunakan!"
                     isLoading = false
                 }
             }

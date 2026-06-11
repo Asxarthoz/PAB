@@ -13,7 +13,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,7 +21,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.tourtest.feature.profile.viewmodel.ProfileViewModel
+import com.example.tourtest.core.network.NetworkProfileViewModel
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,14 +62,10 @@ fun FullScreenImageContent(
 @Composable
 fun FullScreenImageScreen(
     onBack: () -> Unit,
-    viewModel: ProfileViewModel
+    viewModel: NetworkProfileViewModel
 ) {
     val profileBitmap by viewModel.profileBitmap.collectAsStateWithLifecycle()
-    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
-    LaunchedEffect(currentUser) {
-        currentUser?.id?.let { userId -> viewModel.loadUser(userId) }
-    }
 
     FullScreenImageContent(
         imageBitmap = profileBitmap,
